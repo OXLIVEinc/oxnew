@@ -1,0 +1,216 @@
+folder client {
+  folder public {
+    file favicon.svg
+    file icons.svg
+  }
+  folder src {
+    folder assets {
+    }
+    folder components {
+      file Countdown.module.css
+      file Countdown.tsx
+      file Shell.module.css
+      file Shell.tsx
+      file StubCard.module.css
+      file StubCard.tsx
+      file ui.module.css
+    }
+    folder lib {
+      file api.ts
+    }
+    folder pages {
+      file CheckoutPage.module.css
+      file CheckoutPage.tsx
+      file HotelOrderPage.module.css
+      file HotelOrderPage.tsx
+      file TransferClaimPage.module.css
+      file TransferClaimPage.tsx
+    }
+    file App.tsx
+    file index.css
+    file main.tsx
+    file vite-env.d.ts
+  }
+  file .env
+  file bun.lock
+  file eslint.config.js
+  file index.html
+  file package.json
+  file README.md
+  file tsconfig.app.json
+  file tsconfig.json
+  file tsconfig.node.json
+  file vite.config.ts
+}
+folder public {
+  folder tickets {
+  }
+}
+folder shared {
+  file schema.ts
+}
+folder src {
+  folder config {
+    file database.ts
+    file env.ts
+  }
+  folder lib {
+    folder qr {
+      file create-ticket-card.ts
+      file create-ticket-qr.ts
+      file generate-qr.ts
+      file sign-qr-payload.ts
+      file upload-qr.ts
+      file validate-ticket-qr.ts
+      file verify-qr.ts
+    }
+  }
+  folder middleware {
+    file auth.middleware.ts
+    file error.middleware.ts
+  }
+  folder modules {
+    folder discover {
+      file discover.controller.ts
+      file discover.routes.ts
+      file discover.service.ts
+    }
+    folder events {
+      file events.controller.ts
+      file events.repository.ts
+      file events.routes.ts
+      file events.service.ts
+    }
+    folder guest {
+      file guest.controller.ts
+      file guest.routes.ts
+      file guest.service.ts
+    }
+    folder payments {
+      file payments.routes.ts
+    }
+    folder registrations {
+      file registrations.controller.ts
+      file registrations.routes.ts
+      file registrations.service.ts
+    }
+    folder ticket-tiers {
+      file ticket-tiers.controller.ts
+      file ticket-tiers.routes.ts
+      file ticket-tiers.service.ts
+    }
+    folder tickets {
+      file tickets.controller.ts
+      file tickets.routes.ts
+      file tickets.service.ts
+    }
+    folder whatsapp {
+      folder bot {
+        folder flows {
+          file eventFlow.ts
+          file hotelFlow.ts
+          file mainMenu.ts
+          file ordersFlow.ts
+          file transferFlow.ts
+        }
+        file helpers.ts
+        file messenger.ts
+        file payments.ts
+        file router.ts
+        file session.ts
+      }
+      folder controller {
+      }
+       folder folder routes {
+    file webhook.routes.ts 
+    file hotel.routes.ts
+    file ticket.routes.ts
+    file transfer.routes.ts
+    file index.ts 
+  }
+
+  folder controllers {
+    file webhook.controller.ts
+    file hotel.controller.ts
+    file ticket.controller.ts
+    file transfer.controller.ts
+  }
+  
+
+  folder middleware {
+    file error.middleware.ts
+  }
+      folder data {
+        file db.ts
+      }
+      folder db {
+        file client.ts
+        file redis.ts
+        file seed.ts
+      }
+      folder lib {
+        folder qr {
+          file create-ticket-card.ts
+          file create-ticket-qr.ts
+          file generate-qr.ts
+          file sign-qr-payload.ts
+          file upload-qr.ts
+          file validate-ticket-qr.ts
+          file verify-qr.ts
+        }
+        file datetime.ts
+        file geocode.ts
+        file ids.ts
+        file paystack.ts
+        file whatsapp.ts
+      }
+      folder queues {
+        file connection.ts
+        file hotel_upsell.ts
+        file pre_event_reminder.ts
+        file purchase.ts
+        file referral_upsell.ts
+        file ticket_confirmation.ts
+      }
+      folder routes {
+      }
+      folder test {
+        file simulate.ts
+      }
+      folder typecheck-stubs {
+        file stubs.d.ts
+      }
+      folder webhook {
+      }
+      folder workers {
+        file index.ts
+        file purchase.ts
+      }
+      file types.ts
+      file webhook.ts
+    }
+  }
+  folder routes {
+    file index.ts
+  }
+  folder supabase {
+    file admin.ts
+  }
+  folder supabase copy {
+    file server.ts
+  }
+  folder utils {
+    file helpers.ts
+  }
+  file server.ts
+}
+file .env
+file bun.lock
+file CHANGES.md
+file drizzle.config.ts
+file dump.rdb
+file package-lock.json
+file package.json
+file README.md
+file tsconfig.json
+file tsconfig.typecheck.json

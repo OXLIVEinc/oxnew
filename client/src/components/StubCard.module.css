@@ -1,0 +1,40 @@
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.top {
+  padding: 24px 22px 20px;
+}
+
+.perforation {
+  position: relative;
+  height: 0;
+  border-top: 1.5px dashed var(--border-strong);
+  margin: 0 22px;
+}
+
+.perforation::before,
+.perforation::after {
+  content: '';
+  position: absolute;
+  top: -9px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--bg);
+}
+
+.perforation::before {
+  left: -31px;
+}
+
+.perforation::after {
+  right: -31px;
+}
+
+.bottom {
+  padding: 20px 22px 22px;
+}
