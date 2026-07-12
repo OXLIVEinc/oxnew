@@ -2,9 +2,9 @@
   "name": "ox-whatsapp-bot",
   "version": "2.0.0",
   "description": "OX Entertainment WhatsApp bot engine (TypeScript) — deep-link ticketing (checkout-link based), hotel booking with room types, recipient-confirmed ticket transfers, pause/resume, Redis sessions, Postgres via Drizzle.",
-   "main": "dist/src/server.js",
+  "main": "dist/src/server.js",
   "scripts": {
-    "build": "tsc",
+     "build": "tsc && tsc-alias",
     "start": "node dist/src/server.js",
     "dev": "tsx watch src/server.ts",
     "worker": "tsx watch src/modules/whatsapp/workers/index.ts",
@@ -41,6 +41,7 @@
     "@types/qrcode": "^1.5.5",
     "@types/uuid": "^10.0.0",
     "drizzle-kit": "^0.28.1",
+    "tsc-alias": "^1.9.0",
     "tsx": "^4.20.3",
     "typescript": "^5.5.4"
   }
