@@ -1,11 +1,3 @@
-/**
- * server/routes/index.ts
- * -------------------------------------------------------------------------
- * Every module's router is mounted here, under a single `/api` prefix
- * (applied in server/app.ts). This file is the map of the whole API surface
- * — if you're looking for where a route lives, start here.
- * -------------------------------------------------------------------------
- */
 import { Router } from "express";
 import eventsRoutes from "@/modules/events/events.routes";
 import registrationsRoutes from "@/modules/registrations/registrations.routes";
