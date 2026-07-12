@@ -1,27 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Navbar } from '@/components/Navbar';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { CalendarIcon } from 'lucide-react';
-import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
 import { SEOHead } from '@/components/SEOHead';
 import { FeaturedStoriesCarousel } from '@/components/FeaturedStoriesCarousel';
 import { TrustedByMarquee } from '@/components/TrustedByMarquee';
 import { EventMarketplace } from '@/components/EventMarketplace';
+import { DiscoverFilterBar, DEFAULT_FILTERS, type DiscoverFilters } from '@/components/discover/DiscoverFilterBar';
+import { DiscoverEventCard } from '@/components/discover/DiscoverEventCard';
 import { useGeoLocation } from '@/hooks/useGeoLocation';
-
-interface Event {
-  id: string;
-  title: string;
-  date: string;
-  time: string;
-  background_image_url: string;
-  target_date: string;
-  address: string;
-}
+import { useEvents } from '@/hooks/api/useEvents';
+import {
+  addDays,
+  isSameDay,
+  isWithinInterval,
+  isWeekend,
+  startOfDay,
+  endOfDay,
+} from 'date-fns';
+import { SearchX } from 'lucide-react';
 
 const TYPEWRITER_PHRASES = [
   'Built to Empower Events.',
@@ -66,95 +61,88 @@ const TypewriterText: React.FC = () => {
   );
 };
 
-const EventCard = ({ event }: { event: Event }) => {
-  const navigate = useNavigate();
-  const isEventLive = () => {
-    const now = new Date().getTime();
-    const target = new Date(event.target_date).getTime();
-    const oneHour = 1000 * 60 * 60;
-    return now >= target && now <= target + oneHour;
-  };
-  const eventLive = isEventLive();
-  return (
-    <div className="relative cursor-pointer group" onClick={() => navigate(`/event/${event.id}`)}>
-      <div className="overflow-hidden rounded-lg mb-3">
-        <div className="aspect-video bg-muted relative">
-          <img
-            src={event.background_image_url}
-            alt={event.title}
-            className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
-            loading="lazy"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-          <div className="absolute bottom-0 left-0 right-0 p-4">
-            <div className="flex gap-0 mb-2">
-              <span className="text-[10px] uppercase bg-white text-black px-2 py-0.5 font-medium">{event.date}</span>
-              <span className="text-[10px] uppercase border border-white text-white px-2 py-0.5">{event.time}</span>
-              {eventLive && (
-                <span className="text-[10px] uppercase border text-white px-2 py-0.5 bg-red-600 border-red-600">LIVE</span>
-              )}
-            </div>
-            <h3 className="text-white text-base font-medium truncate">{event.title}</h3>
-            <p className="text-white/70 text-xs truncate mt-0.5">{event.address}</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
+/** Does this event's date satisfy the selected date preset / custom range? */
+function matchesDate(eventDate: Date, filters: DiscoverFilters): boolean {
+  const today = startOfDay(new Date());
+
+  switch (filters.datePreset) {
+    case 'any':
+      return true;
+    case 'today':
+      return isSameDay(eventDate, today);
+    case 'tomorrow':
+      return isSameDay(eventDate, addDays(today, 1));
+    case 'week':
+      return isWithinInterval(eventDate, { start: today, end: endOfDay(addDays(today, 6)) });
+    case 'weekend': {
+      // The next Saturday/Sunday, inclusive of today if today already falls on the weekend.
+      let cursor = today;
+      while (!isWeekend(cursor)) cursor = addDays(cursor, 1);
+      const weekendEnd = cursor.getDay() === 6 ? addDays(cursor, 1) : cursor;
+      return isWithinInterval(eventDate, { start: startOfDay(cursor), end: endOfDay(weekendEnd) });
+    }
+    case 'custom': {
+      if (!filters.customRange?.from) return true;
+      const from = startOfDay(filters.customRange.from);
+      const to = filters.customRange.to ? endOfDay(filters.customRange.to) : endOfDay(filters.customRange.from);
+      return isWithinInterval(eventDate, { start: from, end: to });
+    }
+    default:
+      return true;
+  }
+}
 
 const Discover = () => {
-  const [date, setDate] = useState<Date | undefined>(undefined);
-  const [events, setEvents] = useState<Event[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [initialDateSet, setInitialDateSet] = useState(false);
+  const [filters, setFilters] = useState<DiscoverFilters>(DEFAULT_FILTERS);
   const [scrollY, setScrollY] = useState(0);
   const geo = useGeoLocation();
+  const { data: events = [], isLoading: loading } = useEvents();
 
   useEffect(() => {
-    fetchEvents();
     const handleScroll = () => setScrollY(window.scrollY);
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  useEffect(() => {
-    if (!initialDateSet && events.length > 0) {
-      const today = new Date();
-      const now = today.getTime();
-      const oneHour = 1000 * 60 * 60;
-      const hasEventsToday = events.some((event) => {
-        const eventDate = new Date(event.target_date);
-        const target = eventDate.getTime();
-        if (target < now - oneHour) return false;
-        return eventDate.getFullYear() === today.getFullYear() && eventDate.getMonth() === today.getMonth() && eventDate.getDate() === today.getDate();
-      });
-      if (hasEventsToday) setDate(today);
-      setInitialDateSet(true);
-    }
-  }, [events, initialDateSet]);
+  const genres = useMemo(() => {
+    const set = new Set<string>();
+    events.forEach((e) => e.genre && set.add(e.genre));
+    return Array.from(set).sort();
+  }, [events]);
 
-  const fetchEvents = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('events')
-        .select('id, title, date, time, background_image_url, target_date, address')
-        .eq('status', 'active')
-        .order('target_date', { ascending: true });
-      if (error) throw error;
-      setEvents(data || []);
-    } catch { /* */ } finally { setLoading(false); }
-  };
-
-  const filteredEvents = events.filter((event) => {
-    const now = new Date().getTime();
-    const target = new Date(event.target_date).getTime();
+  const filteredEvents = useMemo(() => {
+    const now = Date.now();
     const oneHour = 1000 * 60 * 60;
-    if (target < now - oneHour) return false;
-    if (!date) return true;
-    const eventDate = new Date(event.target_date);
-    return eventDate.getFullYear() === date.getFullYear() && eventDate.getMonth() === date.getMonth() && eventDate.getDate() === date.getDate();
-  });
+    const search = filters.search.trim().toLowerCase();
+
+    return events.filter((event) => {
+      const eventDateTime = new Date(`${event.schedule.date}T${event.schedule.time}`);
+      if (eventDateTime.getTime() < now - oneHour) return false;
+
+      if (!matchesDate(eventDateTime, filters)) return false;
+
+      if (filters.genre !== 'all' && event.genre !== filters.genre) return false;
+
+      if (filters.price === 'free' && event.isPaid) return false;
+      if (filters.price === 'paid' && !event.isPaid) return false;
+
+      if (search) {
+        const haystack = [event.title, event.venue, event.address, event.genre, ...(event.tags ?? [])]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        if (!haystack.includes(search)) return false;
+      }
+
+      return true;
+    });
+  }, [events, filters]);
+
+  const isFiltered =
+    filters.search.trim() !== '' ||
+    filters.genre !== 'all' ||
+    filters.price !== 'all' ||
+    filters.datePreset !== 'any';
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
@@ -206,47 +194,60 @@ const Discover = () => {
         <EventMarketplace />
       </div>
 
-      {/* Browse by Date Section */}
+      {/* Browse / Filter Section */}
       <section id="events-section" className="px-4 md:px-8 pb-16 pt-6 md:pt-16">
-        <div>
-          <div className="flex flex-wrap items-center gap-0 mb-6 md:mb-8 animate-fade-in" style={{ animationDelay: '0.8s', animationFillMode: 'both' }}>
-            <h2 className="text-base md:text-lg lg:text-xl font-normal w-full sm:w-auto mb-2 sm:mb-0">Browsing events in</h2>
-            <span className="text-base md:text-lg lg:text-xl font-normal border border-foreground px-2 py-1 sm:ml-2">{geo.country}</span>
-            <div className="lg:hidden">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button className={cn("text-base md:text-lg lg:text-xl font-normal border border-l-0 border-foreground px-2 py-1 flex items-center bg-background hover:bg-muted transition-colors", !date && "text-muted-foreground")}>
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {date ? format(date, "MMM do, yyyy") : <span>Pick a date</span>}
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={date} onSelect={setDate} className={cn("p-3 pointer-events-auto")} />
-                </PopoverContent>
-              </Popover>
-            </div>
-          </div>
+        <div className="flex flex-wrap items-center gap-2 mb-6 md:mb-8 animate-fade-in" style={{ animationDelay: '0.8s', animationFillMode: 'both' }}>
+          <h2 className="text-base md:text-lg lg:text-xl font-normal">Browsing events in</h2>
+          <span className="text-base md:text-lg lg:text-xl font-normal border border-foreground px-2 py-1 rounded-full">{geo.country}</span>
+        </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8 lg:gap-12 mt-8 md:mt-16">
-            <div className="hidden lg:block animate-fade-in lg:sticky lg:top-24 self-start" style={{ animationDelay: '0.9s', animationFillMode: 'both' }}>
-              <Calendar mode="single" selected={date} onSelect={setDate} className="mx-auto" />
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 lg:col-start-2 gap-3 md:gap-5">
-              {loading ? (
-                <div className="col-span-full text-center py-12">Loading events...</div>
-              ) : filteredEvents.length === 0 ? (
-                <div className="col-span-full text-center py-12">
-                  {date ? `No events found for ${date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}` : 'No events found'}
-                </div>
-              ) : (
-                filteredEvents.map((event, index) => (
-                  <div key={event.id} className="animate-fade-in" style={{ animationDelay: `${1.0 + (index * 0.05)}s`, animationFillMode: 'both' }}>
-                    <EventCard event={event} />
-                  </div>
-                ))
+        <DiscoverFilterBar
+          filters={filters}
+          onChange={setFilters}
+          genres={genres}
+          resultCount={filteredEvents.length}
+          isFiltered={isFiltered}
+          onReset={() => setFilters(DEFAULT_FILTERS)}
+        />
+
+        <div className="mt-6 md:mt-8 grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-8 md:gap-x-6 md:gap-y-10">
+          {loading ? (
+            Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="animate-pulse">
+                <div className="aspect-[4/5] rounded-2xl bg-muted" />
+                <div className="mt-3 h-4 w-3/4 rounded bg-muted" />
+                <div className="mt-2 h-3 w-1/2 rounded bg-muted" />
+              </div>
+            ))
+          ) : filteredEvents.length === 0 ? (
+            <div className="col-span-full flex flex-col items-center justify-center gap-3 py-20 text-center">
+              <div className="h-14 w-14 rounded-full bg-muted flex items-center justify-center">
+                <SearchX size={22} className="text-muted-foreground" />
+              </div>
+              <div>
+                <p className="font-medium">No events match your filters</p>
+                <p className="text-sm text-muted-foreground mt-1">Try adjusting your search or date range</p>
+              </div>
+              {isFiltered && (
+                <button
+                  onClick={() => setFilters(DEFAULT_FILTERS)}
+                  className="mt-2 text-sm font-medium border border-foreground px-4 py-2 rounded-full hover:bg-foreground hover:text-background transition-colors"
+                >
+                  Reset filters
+                </button>
               )}
             </div>
-          </div>
+          ) : (
+            filteredEvents.map((event, index) => (
+              <div
+                key={event.id}
+                className="animate-fade-in"
+                style={{ animationDelay: `${Math.min(index * 0.04, 0.6)}s`, animationFillMode: 'both' }}
+              >
+                <DiscoverEventCard event={event} />
+              </div>
+            ))
+          )}
         </div>
       </section>
     </div>
