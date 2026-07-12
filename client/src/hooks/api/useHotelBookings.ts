@@ -29,7 +29,7 @@ function useBookingAction(
   return useMutation({
     mutationFn,
     onSuccess: (_data, id) => {
-      // toast.success(successMessage);
+      toast.success(successMessage);
       queryClient.invalidateQueries({ queryKey: queryKeys.hotel.bookings.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.hotel.bookings.detail(id as string) });
       queryClient.invalidateQueries({ queryKey: queryKeys.hotel.overview() });
