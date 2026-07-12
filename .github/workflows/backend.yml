@@ -1,0 +1,20 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'client/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: railwayapp/railway-deploy@v3
+        with:
+          railway_token: ${{ secrets.RAILWAY_TOKEN }}
+          service: YOUR_BACKEND_SERVICE_NAME
