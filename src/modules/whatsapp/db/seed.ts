@@ -23,32 +23,6 @@ function organizerEmail(brandName: string): string {
   return `${slug}@organizers.ox.app`;
 }
 
-// events.createdBy is a real FK to profiles.id now (was a freeform
-// `creator` text field) — every event needs an organizer profile behind
-// it. This seed creates one per unique brand name it sees and reuses it
-// across their events. In production, the real organizer's profile id is
-// supplied directly when the event is created (e.g. from the dashboard),
-// this resolution step only exists to make seed data self-contained.
-// const organizerCache = new Map<string, string>();
-
-// async function getOrCreateOrganizerProfile(brandName: string): Promise<string> {
-//   const cached = organizerCache.get(brandName);
-//   if (cached) return cached;
-
-//   const email = organizerEmail(brandName);
-//   const existing = await db.select().from(schema.profiles).where(eq(schema.profiles.email, email)).limit(1);
-//   if (existing[0]) {
-//     organizerCache.set(brandName, existing[0].id);
-//     return existing[0].id;
-//   }
-
-//   const [profile] = await db
-//     .insert(schema.profiles)
-//     .values({ email, displayName: brandName })
-//     .returning();
-//   organizerCache.set(brandName, profile.id);
-//   return profile.id;
-// }
 
 interface EventSeedInput {
   slug: string;
@@ -454,7 +428,7 @@ const HOTELS: HotelSeedInput[] = [
     rooms: [
       { name: "Golf View Room", pricePerNight: "60000", capacity: 2, sortOrder: 0 },
       { name: "Villa", pricePerNight: "150000", capacity: 6, sortOrder: 1 },
-    ] }
+    ] },
   { name: "Oriental Hotel Lagos", state: "Lagos", city: "Lagos", address: "3 Lekki Rd, Victoria Island, Lagos", lat: 6.4265, lng: 3.4443, whatsappNumber: "2348021110010",
     rooms: [
       { name: "Standard Room", pricePerNight: "70000", capacity: 2, sortOrder: 0 },
@@ -479,17 +453,21 @@ const HOTELS: HotelSeedInput[] = [
     rooms: [
       { name: "Standard Room", pricePerNight: "55000", capacity: 2, sortOrder: 0 },
       { name: "Suite", pricePerNight: "105000", capacity: 3, sortOrder: 1 },
-    ] },
+    ]
+   },
+
   { name: "Fraser Suites Abuja", state: "FCT", city: "Abuja", address: "6 Yakubu Gowon Crescent, Asokoro, Abuja", lat: 9.0333, lng: 7.5205, whatsappNumber: "2348021110015",
     rooms: [
       { name: "Studio Apartment", pricePerNight: "72000", capacity: 2, sortOrder: 0 },
       { name: "One-Bedroom Suite", pricePerNight: "110000", capacity: 3, sortOrder: 1 },
     ] },
+
   { name: "Golden Tulip Port Harcourt", state: "Rivers", city: "Port Harcourt", address: "1 Josiah Ojo Rd, GRA Phase 2, Port Harcourt", lat: 4.8180, lng: 7.0330, whatsappNumber: "2348021110016",
     rooms: [
       { name: "Standard Room", pricePerNight: "58000", capacity: 2, sortOrder: 0 },
       { name: "Executive Room", pricePerNight: "90000", capacity: 2, sortOrder: 1 },
     ] },
+
   { name: "Presidential Hotel Port Harcourt", state: "Rivers", city: "Port Harcourt", address: "Aba Rd, GRA, Port Harcourt", lat: 4.8114, lng: 7.0400, whatsappNumber: "2348021110017",
     rooms: [
       { name: "Standard Room", pricePerNight: "50000", capacity: 2, sortOrder: 0 },
