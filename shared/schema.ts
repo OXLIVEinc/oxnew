@@ -1099,6 +1099,8 @@ export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({
 
 export type Profile = typeof profiles.$inferSelect;
 export type Event = typeof events.$inferSelect;
+export type OrganizerProfile = typeof organizerProfiles.$inferSelect;
+export type NewOrganizerProfile = typeof organizerProfiles.$inferInsert;
 export type TicketTier = typeof ticketTiers.$inferSelect;
 export type TicketOrder = typeof ticketOrders.$inferSelect;
 export type Ticket = typeof tickets.$inferSelect;
