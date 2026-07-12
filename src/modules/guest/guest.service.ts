@@ -1,10 +1,3 @@
-/**
- * server/modules/guest/guest.service.ts
- * -------------------------------------------------------------------------
- * Powers the guest dashboard: "My Events" (with the upcoming/past filter)
- * and "My Tickets" (with the generated QR ticket card image).
- * -------------------------------------------------------------------------
- */
 import { eq, desc } from "drizzle-orm";
 import { db } from "@/config/database";
 import { eventRegistrations, events, tickets, ticketTiers } from "@shared/schema";
@@ -30,7 +23,6 @@ export async function listMyRegisteredEvents(profileId: string, filter: Register
       id: r.event.id,
       title: r.event.title,
       backgroundImageUrl: r.event.backgroundImageUrl,
-      venue: r.event.venue,
       address: r.event.address,
       status: r.event.status,
       schedule,
@@ -84,7 +76,6 @@ export async function listMyTickets(profileId: string) {
     event: {
       id: event.id,
       title: event.title,
-      venue: event.venue,
       address: event.address,
       schedule: toEventSchedule(event),
     },

@@ -1,22 +1,4 @@
-/**
- * server/modules/registrations/registrations.service.ts
- * -------------------------------------------------------------------------
- * Every registration or purchase — free or paid — ends the same way: one
- * `event_registrations` row and one `tickets` row with a generated QR
- * ticket card. This module is the single place that creates a ticket, so
- * that guarantee can't drift between the free and paid code paths.
- *
- * Free tier (price === 0):
- *   -> registration + ticket + QR are created immediately.
- *
- * Paid tier (price > 0):
- *   -> a `ticket_orders` row is created (status "pending") and returned to
- *      the client to continue to checkout. The actual ticket + QR are
- *      created by `finalizePaidOrder` once the payments module confirms
- *      the order is paid (see server/modules/payments — stubbed for now,
- *      wire up your Paystack webhook there).
- * -------------------------------------------------------------------------
- */
+
 import { and, eq } from "drizzle-orm";
 import { db } from "@/config/database";
 import { events, ticketTiers, eventRegistrations, tickets, ticketOrders, profiles } from "@shared/schema";
@@ -66,7 +48,7 @@ async function generateAndAttachQr(params: {
     ticketTier: params.tierName,
     eventName: params.event.title,
     eventDate: `${schedule.date} ${schedule.time}`,
-    venue: params.event.venue,
+    venue: params.event.address,
     banner: params.event.desktopBannerUrl ?? params.event.backgroundImageUrl,
   });
 
