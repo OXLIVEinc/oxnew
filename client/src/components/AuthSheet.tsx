@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
-import { useAuth } from "@/context/AuthContext"; // Adjust this path to match your project
+import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import PhoneInput from "react-phone-number-input";
@@ -85,7 +85,7 @@ export const AuthSheet: React.FC<AuthSheetProps> = ({ isOpen, onClose }) => {
 
       {/* Sheet */}
       <div
-        className={`fixed right-0 top-0 h-full w-full max-w-md bg-[#1A1A1A] z-[1001] shadow-2xl transition-transform duration-300 overflow-y-auto overscroll-contain ${isOpen ? "animate-slide-in-right" : ""}`}
+        className={`fixed right-0 top-0 h-full w-full max-w-md bg-[#1A1A1A] z-[3000] shadow-2xl transition-transform duration-300 overflow-y-auto overscroll-contain ${isOpen ? "animate-slide-in-right" : ""}`}
         style={{ WebkitOverflowScrolling: "touch" }}
         onClick={(e) => e.stopPropagation()}
       >

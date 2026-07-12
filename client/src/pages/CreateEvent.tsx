@@ -8,7 +8,6 @@ import { useGooglePlacesAutocomplete } from '@/hooks/useGooglePlacesAutocomplete
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { User } from '@supabase/supabase-js';
 import { AuthSheet } from '@/components/AuthSheet';
 import { SEOHead } from '@/components/SEOHead';
 import { z } from 'zod';
@@ -20,12 +19,12 @@ import {
 } from '@/components/EventTicketTiers';
 import { EventMetadataForm } from '@/components/EventMetadataForm';
 import { EventBannerUpload } from '@/components/EventBannerUpload';
-import { EventGalleryUpload, GalleryItem } from '@/components/EventGalleryUpload';
-import { VenueSeatingMapEditor, VenueSection } from '@/components/VenueSeatingMapEditor';
+import { EventGalleryUpload, type GalleryItem } from '@/components/EventGalleryUpload';
+import { VenueSeatingMapEditor, type VenueSection } from '@/components/VenueSeatingMapEditor';
 import { useCreateEvent } from '@/hooks/api/useEvents';
 import { getApiErrorMessage } from '@/lib/api/http';
 import type { CreateEventPayload } from '@/lib/api/types';
-
+import { useAuth } from '@/context/AuthContext';
 const eventSchema = z.object({
   eventName: z.string().trim().min(1, 'Event name is required').max(200),
   startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Start time must be HH:MM'),
@@ -45,7 +44,6 @@ const CreateEvent = () => {
   const [locationLat, setLocationLat] = useState<number | null>(null);
   const [locationLng, setLocationLng] = useState<number | null>(null);
   const [description, setDescription] = useState('');
-  const [user, setUser] = useState<User | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
 
   const [isPaid, setIsPaid] = useState(false);
@@ -65,19 +63,11 @@ const CreateEvent = () => {
   const navigate = useNavigate();
   const { onPlaceSelected } = useGooglePlacesAutocomplete(locationInputRef);
   const createEvent = useCreateEvent();
-
+  const { authUser: user } = useAuth();
+ 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user || null);
-      if (!session?.user) setShowAuthModal(true);
-    });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user || null);
-      if (session?.user) setShowAuthModal(false);
-      else setShowAuthModal(true);
-    });
-    return () => subscription.unsubscribe();
-  }, []);
+  setShowAuthModal(!user);
+}, [user]);
 
   useEffect(() => {
     onPlaceSelected((place) => {

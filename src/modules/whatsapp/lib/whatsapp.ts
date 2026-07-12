@@ -53,7 +53,11 @@ async function cloudApiFetch(body: Record<string, unknown>): Promise<any> {
   }
 
   if (!res.ok) {
-    throw new Error(`WhatsApp Cloud API request failed: ${res.status} ${text}`);
+    console.error("WhatsApp API Error:", res.status, text);
+
+    throw new Error(
+      `WhatsApp Cloud API request failed: ${res.status} ${text}`
+    );
   }
 
   return data;
@@ -134,6 +138,50 @@ export async function markAsReadAndShowTyping(
     message_id: whatsappMessageId,
     typing_indicator: {
       type: "text",
+    },
+  });
+}
+
+
+export async function sendCloudReplyButtonsMessage(
+  phone: string,
+  options: {
+    bodyText: string;
+    footerText?: string;
+    buttons: {
+      id: string;
+      title: string;
+    }[];
+  }
+): Promise<void> {
+  console.log('called', options,normalizePhone(phone))
+  await cloudApiFetch({
+    to: normalizePhone(phone),
+    type: "interactive",
+    interactive: {
+      type: "button",
+
+      body: {
+        text: options.bodyText,
+      },
+
+      ...(options.footerText
+        ? {
+            footer: {
+              text: options.footerText,
+            },
+          }
+        : {}),
+
+      action: {
+        buttons: options.buttons.map((button) => ({
+          type: "reply",
+          reply: {
+            id: button.id,
+            title: button.title,
+          },
+        })),
+      },
     },
   });
 }

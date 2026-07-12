@@ -1,5 +1,5 @@
 import { getSession, setState, pauseSession, resumeSession, clearPaused, hasPausedSession } from './session';
-import { isDeepLinkCode, isGlobalCommand, isMoreCommand, parseCancelOrderCommand, HELP_MESSAGE, FALLBACK } from './helpers';
+import { isDeepLinkCode, isGlobalCommand, isMoreCommand, parseCancelOrderCommand, HELP_MESSAGE, FALLBACK, getEventCheckoutCta, getExpiryFooter } from './helpers';
 import * as db from '../data/db';
 import { BotReply, ConversationContext, FlowResult } from '../types';
 
@@ -9,7 +9,7 @@ import * as hotelFlow from './flows/hotelFlow';
 import * as transferFlow from './flows/transferFlow';
 import * as ordersFlow from './flows/ordersFlow';
 
-export { resetSession } from './session';
+import  { resetSession } from './session';
 
 const PAUSED_CHOICE_PROMPT =
   `You have a paused booking. Would you like to:\n\n` +
@@ -30,6 +30,7 @@ const PAUSED_CHOICE_PROMPT =
  */
 export async function handleMessage(phone: string, text: string, waName?: string | null): Promise<BotReply> {
   const trimmed = (text || '').trim();
+  console.log(trimmed)
 
   // -------------------------------------------------------------------
   // 0. A hotel partner replying CONFIRM/DECLINE <ref> to a paid booking
@@ -86,22 +87,41 @@ export async function handleMessage(phone: string, text: string, waName?: string
         reply: `Your progress has been paused.\n\n` + mainMenu.showMainMenu(true),
       };
     }
+    
 
     if (cmd === 'resume') {
-      const resumed = await resumeSession(phone);
-      if (!resumed) {
-        return { reply: `There's nothing to resume right now.\n\n` + mainMenu.showMainMenu(false, await greetingName(phone, waName)) };
-      }
-      return {
-        reply: `Picking up where you left off.\n\n${resumed.lastPrompt || mainMenu.showMainMenu(false)}`,
-      };
-    }
+  const resumed = await resumeSession(phone);
+
+  if (!resumed) {
+    return {
+      reply:
+        `There's nothing to resume right now.\n\n` +
+        mainMenu.showMainMenu(false, await greetingName(phone, waName)),
+    };
+  }
+
+  return {
+    reply: resumed.lastPrompt
+      ? `Picking up where you left off.\n\n${resumed.lastPrompt}`
+      : null,
+    cta: resumed.lastCta,
+  };
+}
 
     if (cmd === 'menu') {
-      const paused = !!(await getSession(phone)).paused;
-      await setState(phone, 'MAIN_MENU', {});
-      return { reply: mainMenu.showMainMenu(paused, await greetingName(phone, waName)) };
-    }
+  await resetSession(phone);
+
+  const paused = await hasPausedSession(phone);
+
+  await setState(phone, 'MAIN_MENU', {});
+
+  return {
+    reply: mainMenu.showMainMenu(
+      paused,
+      await greetingName(phone, waName)
+    ),
+  };
+}
   }
 
   // -------------------------------------------------------------------
@@ -141,6 +161,7 @@ export async function handleMessage(phone: string, text: string, waName?: string
   switch (state) {
     case 'MAIN_MENU': {
       const result = mainMenu.handleMainMenuInput(trimmed);
+
       if (result.nextState === 'HELP') {
         await setState(phone, 'MAIN_MENU', {});
         return { reply: HELP_MESSAGE() };
@@ -154,6 +175,11 @@ export async function handleMessage(phone: string, text: string, waName?: string
       if (result.nextState === 'TRANSFER_INIT') {
         return await maybeGatePaused(phone, await transferFlow.initTransfer(phone));
       }
+
+      if(!result.nextState){
+        return { reply: mainMenu.showMainMenu(false, await greetingName(phone, waName)) };
+      }
+
       return apply(phone, result);
     }
 
@@ -183,14 +209,13 @@ export async function handleMessage(phone: string, text: string, waName?: string
       // (attendee details + payment) and for the Paystack webhook to land.
       return {
   reply: null,
-  cta: context.checkoutLink
-    ? {
-        bodyText:
-          "Still waiting for your checkout to be completed.\n\nReply HELP if you're having trouble, or PAUSE to set this order aside.",
-        footerText: "Expires in 30 minutes",
-        buttonText: "Complete Checkout",
-        url: context.checkoutLink,
-      }
+ cta:
+  context.checkoutLink && context.ticketOrderExpiresAt
+    ? getEventCheckoutCta(
+        context.checkoutLink,
+        !!context.eventIsPaid,
+        context.ticketOrderExpiresAt
+      )
     : undefined,
 };
 
@@ -210,18 +235,22 @@ export async function handleMessage(phone: string, text: string, waName?: string
       return apply(phone, await hotelFlow.handleGuestsInput(trimmed, context, phone));
 
     case 'HOTEL_ORDER_PENDING':
+      console.log(context.hotelOrderExpiresAt)
       return {
   reply: null,
   cta: context.paymentLink
     ? {
         bodyText:
           "Your hotel booking is waiting to be completed.\n\nTap the button below to review your booking and complete payment. Reply HELP if you're having trouble, or PAUSE to set this booking aside.",
-        footerText: "Expires in 30 minutes",
+        footerText: getExpiryFooter(context.hotelOrderExpiresAt!),
         buttonText: "Review & Pay",
         url: context.paymentLink,
       }
     : undefined,
 };
+
+case 'HOTEL_CONFIRM_ACTION':
+  return await handleHotelConfirmation(phone, trimmed, context);
 
     // A post-purchase upsell nudge sent by the hotel_upsell queue job
     case 'HOTEL_UPSELL_OFFER':
@@ -297,7 +326,12 @@ async function handlePausedChoice(
       await setState(phone, 'MAIN_MENU', {});
       return { reply: mainMenu.showMainMenu(false) };
     }
-    return { reply: `Picking up where you left off.\n\n${resumed.lastPrompt || mainMenu.showMainMenu(false)}` };
+   return {
+  reply: resumed.lastPrompt
+    ? `Picking up where you left off.\n\n${resumed.lastPrompt}`
+    : null,
+  cta: resumed.lastCta,
+};
   }
 
   if (choice === '2' || choice === 'new' || choice === 'start new') {
@@ -319,7 +353,13 @@ async function handlePausedChoice(
 async function apply(phone: string, result: FlowResult): Promise<BotReply> {
   if (!result) return { reply: FALLBACK() };
   if (result.nextState) {
-    await setState(phone, result.nextState, result.contextPatch || {}, result.reply ?? undefined);
+    await setState(
+  phone,
+  result.nextState,
+  result.contextPatch || {},
+  result.reply ?? undefined,
+  result.cta
+);
   }
   return { reply: result.reply ?? null, followUp: result.followUp, cta: result.cta };
 }
@@ -329,15 +369,45 @@ async function apply(phone: string, result: FlowResult): Promise<BotReply> {
 // Returns null (falls through to the normal buyer flow) unless the sender
 // is a recognized hotel WhatsApp number sending one of these commands.
 async function tryHandleHotelReply(phone: string, trimmed: string): Promise<BotReply | null> {
-  const upper = trimmed.toUpperCase();
-  if (!upper.startsWith('CONFIRM ') && !upper.startsWith('DECLINE ')) return null;
+ const upper = trimmed.toUpperCase();
+  if (!upper.startsWith('CONFIRM ') && !upper.startsWith('DECLINE ')) {
+    return null;
+  }
 
   const hotel = await db.findHotelByWhatsappNumber(phone);
-  if (!hotel) return null; // not a recognized hotel number — treat as a normal buyer message
+
+console.log({
+  phone,
+  hotel,
+});
+
+if (!hotel) {
+  console.log("Hotel not found");
+  return null;
+}
+
+  // Prevent starting a new confirmation while another is pending.
+  const session = await getSession(phone);
+
+  if (
+    session.state === 'HOTEL_CONFIRM_ACTION' &&
+    session.context.hotelAction
+  ) {
+    const pending = session.context.hotelAction;
+
+    return {
+      reply:
+        `You're already confirming booking ${pending.reference}.\n\n` +
+        `Reply YES to ${pending.action.toLowerCase()} it, or NO to cancel that action before starting another booking.`,
+    };
+  }
 
   const [action, reference] = trimmed.split(/\s+/);
+
   if (!reference) {
-    return { reply: `Please include the booking reference, e.g. CONFIRM OX-HTL-XXXXXX` };
+    return {
+      reply: `Please include the booking reference, e.g. CONFIRM OX-HTL-XXXXXX`,
+    };
   }
 
   const order = await db.findHotelOrderByReference(reference.toUpperCase());
@@ -349,13 +419,89 @@ async function tryHandleHotelReply(phone: string, trimmed: string): Promise<BotR
     return { reply: `Booking ${reference} is no longer awaiting your response (status: ${order.status}).` };
   }
 
-  if (action.toUpperCase() === 'CONFIRM') {
+  await setState(phone, 'HOTEL_CONFIRM_ACTION', {
+  hotelAction: {
+    action: action.toUpperCase() as 'CONFIRM' | 'DECLINE',
+    reference: reference.toUpperCase(),
+  },
+});
+
+return {
+  reply:
+    `You're about to ${action.toUpperCase()} booking ${reference.toUpperCase()}.\n\n` +
+    `Reply YES to continue or NO to cancel.`,
+};
+}
+
+
+
+
+
+async function handleHotelConfirmation(
+  phone: string,
+  trimmed: string,
+  context: ConversationContext
+): Promise<BotReply> {
+  const answer = trimmed.trim().toUpperCase();
+
+  // No pending confirmation exists.
+  if (!context.hotelAction) {
+    await setState(phone, 'MAIN_MENU', {});
+    return {
+      reply: 'There is no pending confirmation.',
+    };
+  }
+
+  const { action, reference } = context.hotelAction;
+
+  if (answer === 'NO') {
+    await setState(phone, 'MAIN_MENU', {});
+    return {
+      reply: 'Action cancelled. No changes were made.',
+    };
+  }
+
+  if (answer !== 'YES') {
+    return {
+      reply: 'Please reply YES to continue or NO to cancel.',
+    };
+  }
+
+  // Re-fetch the latest version of the order before taking action.
+  const order = await db.findHotelOrderByReference(reference);
+
+  if (!order) {
+    await setState(phone, 'MAIN_MENU', {});
+    return {
+      reply: 'That booking could not be found.',
+    };
+  }
+
+  // Another staff member may have already handled it.
+  if (order.status !== 'paid') {
+    await setState(phone, 'MAIN_MENU', {});
+    return {
+      reply: `Booking ${reference} is no longer awaiting your response (status: ${order.status}).`,
+    };
+  }
+
+  if (action === 'CONFIRM') {
     const updated = await db.confirmHotelOrder(order.id);
     await hotelFlow.deliverConfirmedHotelOrder(updated);
-    return { reply: `Booking ${reference} confirmed. The guest has been notified.` };
+
+    await setState(phone, 'MAIN_MENU', {});
+
+    return {
+      reply: `Booking ${reference} confirmed. The guest has been notified.`,
+    };
   }
 
   const updated = await db.declineHotelOrder(order.id);
   await hotelFlow.notifyGuestOfDecline(updated);
-  return { reply: `Booking ${reference} declined. The guest has been notified.` };
+
+  await setState(phone, 'MAIN_MENU', {});
+
+  return {
+    reply: `Booking ${reference} declined. The guest has been notified.`,
+  };
 }

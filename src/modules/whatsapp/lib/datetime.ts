@@ -55,23 +55,83 @@ const DATE_FORMAT_HINT = "d/m/yyyy — for example 7/6/2026";
  * (rather than throwing) on anything that doesn't match, so callers can
  * show a friendly re-prompt instead of a stack trace.
  */
-export function parseFriendlyDate(text: string): Date | null {
+export interface ParsedFriendlyDate {
+  ok: boolean;
+  date?: Date;
+  error?: string;
+}
+
+export function parseFriendlyDate(text: string): ParsedFriendlyDate {
   const trimmed = text.trim();
+
   const match = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(trimmed);
-  if (!match) return null;
+
+  if (!match) {
+    return {
+      ok: false,
+      error: `Please enter the date as ${friendlyDateFormatHint()}.`,
+    };
+  }
 
   const day = Number(match[1]);
   const month = Number(match[2]);
   const year = Number(match[3]);
 
-  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
-
-  // Construct in UTC at noon to sidestep timezone edge cases entirely.
-  const date = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
-  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) {
-    return null; // e.g. 31/4/2026 rolled over to May — reject it
+  // User probably entered MM/DD/YYYY
+  if (month > 12 && day <= 12) {
+    return {
+      ok: false,
+      error:
+        `It looks like you entered the date as MM/DD/YYYY.\n\n` +
+        `Please use DD/MM/YYYY instead.\n\n` +
+        `For example, July 14, 2026 should be entered as 14/7/2026.`,
+    };
   }
-  return date;
+
+  if (month < 1 || month > 12 || day < 1 || day > 31) {
+    return {
+      ok: false,
+      error: `Please enter a valid date in the format ${friendlyDateFormatHint()}.`,
+    };
+  }
+
+  // Use noon UTC to avoid timezone edge cases.
+  const date = new Date(Date.UTC(year, month - 1, day, 12));
+
+  // Reject impossible dates like 31/02/2026.
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return {
+      ok: false,
+      error: `That isn't a valid calendar date. Please try again.`,
+    };
+  }
+
+  // Reject dates before today.
+  const now = new Date();
+  const today = new Date(
+    Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+      12
+    )
+  );
+
+  if (date < today) {
+    return {
+      ok: false,
+      error: `The date cannot be in the past. Please choose today or a future date.`,
+    };
+  }
+
+  return {
+    ok: true,
+    date,
+  };
 }
 
 export function friendlyDateFormatHint(): string {

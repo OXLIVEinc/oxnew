@@ -1,11 +1,3 @@
-/**
- * src/components/hotel/SettingsPanel.tsx
- * -------------------------------------------------------------------------
- * Notification preferences have no backend column on hotel_partners today,
- * so they're kept locally (localStorage) per browser rather than adding a
- * new schema field. Password changes go straight through Supabase Auth.
- * -------------------------------------------------------------------------
- */
 import React, { useState } from "react";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

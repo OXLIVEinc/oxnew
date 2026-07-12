@@ -12,6 +12,15 @@ type TextSender = (phone: string, message: string) => void | Promise<void>;
 type ImageSender = (phone: string, imageUrl: string, caption?: string) => void | Promise<void>;
 type CtaUrlSender = (phone: string, cta: CtaUrlPayload) => void | Promise<void>;
 
+export interface ReplyButtonsPayload {
+  bodyText: string;
+  footerText?: string;
+  buttons: {
+    id: string;
+    title: string;
+  }[];
+}
+
 let textSender: TextSender = (phone, message) => {
   console.log(`--> WhatsApp text to ${phone}:\n${message}\n`);
 };
@@ -51,4 +60,29 @@ export async function sendImageMessage(phone: string, imageUrl: string, caption?
 /** Sends a proper clickable button instead of a bare link pasted into text. */
 export async function sendCtaUrlMessage(phone: string, cta: CtaUrlPayload): Promise<void> {
   await ctaUrlSender(phone, cta);
+}
+
+
+
+type ReplyButtonsSender = (
+  phone: string,
+  payload: ReplyButtonsPayload
+) => void | Promise<void>;
+
+let replyButtonsSender: ReplyButtonsSender = (phone, payload) => {
+  console.log(
+    `--> WhatsApp Reply Buttons to ${phone}\n`,
+    JSON.stringify(payload, null, 2)
+  );
+};
+
+export function setReplyButtonsMessenger(fn: ReplyButtonsSender): void {
+  replyButtonsSender = fn;
+}
+
+export async function sendReplyButtonsMessage(
+  phone: string,
+  payload: ReplyButtonsPayload
+): Promise<void> {
+  await replyButtonsSender(phone, payload);
 }

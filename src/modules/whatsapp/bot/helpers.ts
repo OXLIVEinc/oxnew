@@ -1,4 +1,5 @@
 export { formatDate, formatEventDate, formatEventTimeRange, formatEventDateTime } from '../lib/datetime';
+import { CtaUrlPayload } from '../types';
 
 export function naira(amount: number): string {
   return '₦' + amount.toLocaleString('en-NG');
@@ -52,3 +53,67 @@ export const HELP_MESSAGE = (): string =>
   `9:00 AM to 10:00 PM (Daily)\n\n` +
   `For urgent assistance, please call:\n` +
   `0800-OX-HELP`;
+
+
+
+  export function getExpiryFooter(expiresAt: string | Date): string {
+  const expiry =
+    expiresAt instanceof Date ? expiresAt : new Date(expiresAt);
+
+  const remainingMs = expiry.getTime() - Date.now();
+
+  if (remainingMs <= 0) {
+    return "Expired";
+  }
+
+  const remainingMinutes = Math.ceil(remainingMs / (1000 * 60));
+
+  return `Expires in ${remainingMinutes} minute${remainingMinutes === 1 ? "" : "s"}`;
+}
+
+export function getEventCheckoutCta(
+  checkoutLink: string,
+  eventIsPaid: boolean,
+  expiresAt: string | Date
+): CtaUrlPayload {
+  return {
+    bodyText: eventIsPaid
+      ? "Still waiting for your checkout to be completed.\n\nReply HELP if you're having trouble, or PAUSE to set this order aside."
+      : "Still waiting for your registration to be completed.\n\nReply HELP if you're having trouble, or PAUSE to set this registration aside.",
+
+    footerText: getExpiryFooter(expiresAt),
+
+    buttonText: eventIsPaid
+      ? "Complete Checkout"
+      : "Complete Registration",
+
+    url: checkoutLink,
+  };
+}
+
+export function getEventCheckoutStartCta(
+  checkoutLink: string,
+  eventIsPaid: boolean,
+  qty: number,
+  tierLabel: string,
+  eventName: string,
+  expiresAt: Date
+): CtaUrlPayload {
+  return {
+    bodyText:
+      `${qty} ticket${qty > 1 ? "s" : ""} of ${tierLabel} for ${eventName}.\n\n` +
+      (
+        eventIsPaid
+          ? "Tap the button below to enter each guest's name and email, then pay securely.\n\nOnce payment is confirmed, your tickets will arrive right here in this chat automatically."
+          : "Tap the button below to enter each guest's name and email to complete your registration.\n\nOnce your registration is complete, your tickets will arrive right here in this chat automatically."
+      ),
+
+    footerText: getExpiryFooter(expiresAt),
+
+    buttonText: eventIsPaid
+      ? "Complete Checkout"
+      : "Complete Registration",
+
+    url: checkoutLink,
+  };
+}

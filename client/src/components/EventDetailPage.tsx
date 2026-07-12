@@ -238,7 +238,7 @@ const handleWheel = (e: React.WheelEvent) => {
         <div className="flex w-full  flex-col items-start relative p-6  pb-2 gap-8 opacity-0 animate-fade-in [animation-delay:200ms]">
           <div className="flex flex-col items-start gap-4 self-stretch relative">
             <EventMeta date={event.date} time={event.time} />
-            <EventHeader title={event.title} creator={event.creator} creatorUserId={event.created_by} />
+            <EventHeader title={event.title}  creatorUserId={event.created_by} />
             <EventTagsDisplay ageGroup={event.age_group} genre={event.genre} tags={event.tags} />
             <EventLikeShare eventId={event.id} eventTitle={event.title} onAuthRequired={() => setIsAuthOpen(true)} />
           </div>

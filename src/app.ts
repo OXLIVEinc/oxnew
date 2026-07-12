@@ -5,8 +5,8 @@ import whatsappRouter from '@/modules/whatsapp/routes/index';
 import { errorHandler } from '@/middleware/error.middleware';
 
 // Messenger setup
-import { setMessenger, setImageMessenger, setCtaUrlMessenger } from './modules/whatsapp/bot/messenger';
-import { sendCloudTextMessage, sendCloudImageByUrl, sendCloudCtaUrlMessage } from './modules/whatsapp/lib/whatsapp';
+import { setMessenger, setImageMessenger, setCtaUrlMessenger,setReplyButtonsMessenger } from './modules/whatsapp/bot/messenger';
+import { sendCloudTextMessage, sendCloudImageByUrl, sendCloudCtaUrlMessage,sendCloudReplyButtonsMessage } from './modules/whatsapp/lib/whatsapp';
 
 export function createApp() {
 
@@ -38,6 +38,7 @@ app.use('/api', apiRouter);
 app.use("/api/w",whatsappRouter)
 
 // Messenger wiring
+// Messenger wiring
 setMessenger(async (phone: string, message: string) => {
   await sendCloudTextMessage(phone, message);
 });
@@ -48,6 +49,10 @@ setImageMessenger(async (phone: string, imageUrl: string, caption?: string) => {
 
 setCtaUrlMessenger(async (phone, cta) => {
   await sendCloudCtaUrlMessage(phone, cta);
+});
+
+setReplyButtonsMessenger(async (phone, payload) => {
+  await sendCloudReplyButtonsMessage(phone, payload);
 });
 
 app.use(errorHandler);

@@ -1,7 +1,3 @@
-/**
- * server/modules/hotel/dashboard/dashboard.controller.ts
- * -------------------------------------------------------------------------
- */
 import type { Request, Response } from "express";
 import { asyncHandler } from "@/middleware/error.middleware";
 import * as service from "./dashboard.service";

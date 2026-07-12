@@ -1,9 +1,3 @@
-/**
- * server/utils/helpers.ts
- * -------------------------------------------------------------------------
- * Small, dependency-free helpers shared across backend modules.
- * -------------------------------------------------------------------------
- */
 import crypto from "crypto";
 
 /**
@@ -48,4 +42,14 @@ export function generateEventCode(): string {
  */
 export function generateOrderReference(prefix: string): string {
   return `${prefix}_${Date.now()}_${crypto.randomBytes(4).toString("hex")}`;
+}
+
+
+export function normalizePhone(phone: string): string {
+  return phone.replace(/^\+/, "").trim();
+}
+
+export function normalizeIncomingPhone(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  return `+${digits}`;
 }

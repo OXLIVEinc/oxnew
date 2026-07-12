@@ -49,11 +49,10 @@ function buildConditions(hotelId: string, params: BookingListParams): SQL[] {
   const conditions: SQL[] = [eq(hotelOrders.hotelId, hotelId)];
 
   if (params.tab) {
-    conditions.push(inArray(hotelOrders.status, TAB_STATUS_MAP[params.tab] as string[]));
-  } else if (params.status) {
-    conditions.push(eq(hotelOrders.status, params.status as never));
-  }
-
+  conditions.push(inArray(hotelOrders.status, TAB_STATUS_MAP[params.tab]));
+} else if (params.status) {
+  conditions.push(eq(hotelOrders.status, params.status));
+}
   if (params.roomTypeId) conditions.push(eq(hotelOrders.roomTypeId, params.roomTypeId));
   if (params.dateFrom) conditions.push(gte(hotelOrders.checkIn, new Date(params.dateFrom)));
   if (params.dateTo) conditions.push(lte(hotelOrders.checkOut, new Date(params.dateTo)));
@@ -138,16 +137,30 @@ export async function isCheckedIn(orderId: string): Promise<boolean> {
   return set.has(orderId);
 }
 
-export async function recordCheckIn(orderId: string, actorProfileId: string, reference: string): Promise<void> {
+export async function recordCheckIn(
+  orderId: string,
+  actorProfileId: string,
+  reference: string
+) {
   const already = await isCheckedIn(orderId);
-  if (already) return;
-  await db.insert(auditLogs).values({
-    actorId: actorProfileId,
-    action: CHECKED_IN_ACTION,
-    entityType: "hotel_order",
-    entityId: orderId,
-    metadata: { reference },
-  });
+
+  if (!already) {
+    await db.insert(auditLogs).values({
+      actorId: actorProfileId,
+      action: CHECKED_IN_ACTION,
+      entityType: "hotel_order",
+      entityId: orderId,
+      metadata: { reference },
+    });
+  }
+
+  const [order] = await db
+    .select()
+    .from(hotelOrders)
+    .where(eq(hotelOrders.id, orderId))
+    .limit(1);
+
+  return order;
 }
 
 export async function recentBookings(hotelId: string, limit = 8) {

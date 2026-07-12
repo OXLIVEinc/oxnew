@@ -18,6 +18,7 @@ import {
 } from 'date-fns';
 import { SearchX } from 'lucide-react';
 import Hero from '@/components/Hero';
+import { EventFooter } from '@/components/EventFooter';
 
 
 /** Does this event's date satisfy the selected date preset / custom range? */
@@ -184,6 +185,7 @@ const Discover = () => {
           )}
         </div>
       </section>
+      <EventFooter/>
     </div>
   );
 };

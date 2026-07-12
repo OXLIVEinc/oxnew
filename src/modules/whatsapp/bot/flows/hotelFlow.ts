@@ -2,7 +2,8 @@ import * as db from '../../data/db';
 import { naira, asNumberChoice, isMoreCommand, formatDate, FALLBACK } from '../helpers';
 import { parseFriendlyDate, friendlyDateFormatHint } from '../../lib/datetime';
 import { ConversationContext, FlowResult, HotelResultItem } from '../../types';
-import { sendMessage } from '../messenger';
+import { sendMessage,sendReplyButtonsMessage } from '../messenger';
+import { getExpiryFooter } from '../helpers';
 
 const CHECKOUT_BASE_URL = process.env.CHECKOUT_BASE_URL || 'https://ox.app';
 
@@ -98,41 +99,65 @@ export async function handleRoomTypeSelection(text: string, context: Conversatio
 // dates -> ask number of guests
 // Two-step so we can validate each date individually with a friendly retry
 // prompt, instead of one combined string that's easy to get wrong.
-export async function handleDatesInput(text: string, context: ConversationContext): Promise<FlowResult> {
+
+export async function handleDatesInput(
+  text: string,
+  context: ConversationContext
+): Promise<FlowResult> {
+  // Step 1: Collect check-in date
   if (!context.checkIn) {
-    const checkIn = parseFriendlyDate(text);
-    if (!checkIn) {
+    const result = parseFriendlyDate(text);
+
+    if (!result.ok) {
       return {
-        reply: `Sorry, we couldn't read that date.\n\nPlease enter it like this: ${friendlyDateFormatHint()}`,
+        reply: result.error!,
       };
     }
+
     return {
       nextState: 'HOTEL_DATES',
-      contextPatch: { checkIn: checkIn.toISOString() },
+      contextPatch: {
+        checkIn: result.date!.toISOString(),
+      },
       reply: `Got it. Now - what's your check-out date? (${friendlyDateFormatHint()})`,
     };
   }
 
-  const checkOut = parseFriendlyDate(text);
-  if (!checkOut) {
+  // Step 2: Collect check-out date
+  const result = parseFriendlyDate(text);
+
+  if (!result.ok) {
     return {
-      reply: `Sorry, we couldn't read that date.\n\nPlease enter it like this: ${friendlyDateFormatHint()}`,
+      reply: result.error!,
     };
   }
 
+  const checkOut = result.date!;
   const checkIn = new Date(context.checkIn);
+
   if (checkOut <= checkIn) {
     return {
       reply: `Your check-out date needs to be after your check-in date (${formatDate(checkIn)}). Please try again.`,
     };
   }
 
-  const nights = Math.round((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24));
+  const nights = Math.round(
+    (checkOut.getTime() - checkIn.getTime()) /
+      (1000 * 60 * 60 * 24)
+  );
 
   return {
     nextState: 'HOTEL_GUESTS',
-    contextPatch: { checkOut: checkOut.toISOString(), nights },
-    reply: `How many guests will be staying?\n\n1. 1 guest\n2. 2 guests\n3. 3 guests\n4. 4 guests`,
+    contextPatch: {
+      checkOut: checkOut.toISOString(),
+      nights,
+    },
+    reply:
+      `How many guests will be staying?\n\n` +
+      `1. 1 guest\n` +
+      `2. 2 guests\n` +
+      `3. 3 guests\n` +
+      `4. 4 guests`,
   };
 }
 
@@ -176,19 +201,22 @@ export async function handleGuestsInput(text: string, context: ConversationConte
 
   return {
     nextState: 'HOTEL_ORDER_PENDING',
-    contextPatch: { guests, total: Number(order.amount), hotelOrderId: order.id, paymentLink: reviewLink },
-    reply:
-      `Your booking request has been created.\n\n` +
-      `${context.hotelName} - ${context.roomTypeName}\n` +
-      `${formatDate(context.checkIn!)} to ${formatDate(context.checkOut!)} (${nights} night${nights > 1 ? 's' : ''})\n` +
-      `${guests} guest${guests > 1 ? 's' : ''} | Total: ${naira(Number(order.amount))}\n` +
-      `Ref: ${order.reference}\n\n` +
-      `Tap below to review your booking and complete it. This link expires in 30 minutes.`,
-    cta: {
-      footerText: 'Expires in 30 minutes',
-      buttonText: 'Review & Pay',
-      url: reviewLink,
-    },
+    contextPatch: { guests, total: Number(order.amount), hotelOrderId: order.id, paymentLink: reviewLink,
+      hotelOrderExpiresAt: order.expiresAt?.toISOString(),
+     },
+    reply: null,
+cta: {
+  bodyText:
+    `Your booking request has been created.\n\n` +
+    `${context.hotelName} - ${context.roomTypeName}\n` +
+    `${formatDate(context.checkIn!)} to ${formatDate(context.checkOut!)} (${nights} night${nights > 1 ? 's' : ''})\n` +
+    `${guests} guest${guests > 1 ? 's' : ''} | Total: ${naira(Number(order.amount))}\n` +
+    `Ref: ${order.reference}\n\n` +
+    `Tap below to review your booking and complete it. This link expires in 30 minutes.`,
+  footerText: getExpiryFooter(order.expiresAt!),
+  buttonText: "Review & Pay",
+  url: reviewLink,
+},
   };
 }
 
@@ -220,17 +248,28 @@ export async function notifyHotelOfBooking(order: db.HotelOrderRow): Promise<voi
   const hotel = await db.getHotelById(order.hotelId);
   if (!hotel) return;
 
-  await sendMessage(
-    hotel.whatsappNumber,
-    `New booking request.\n\n` +
-      `${order.roomTypeName}\n` +
-      `${formatDate(order.checkIn)} to ${formatDate(order.checkOut)} (${order.nights} night${order.nights > 1 ? 's' : ''})\n` +
-      `${order.guests} guest${order.guests > 1 ? 's' : ''}\n` +
-      `Amount: ${naira(Number(order.amount))}\n` +
-      `Ref: ${order.reference}\n\n` +
-      `Reply CONFIRM ${order.reference} to accept, or DECLINE ${order.reference} to decline.\n\n` +
-      `Please respond within 30 minutes - this request expires automatically after that.`
-  );
+  await sendReplyButtonsMessage(hotel.whatsappNumber, {
+  bodyText:
+    `New booking request\n\n` +
+    `${order.roomTypeName}\n` +
+    `${formatDate(order.checkIn)} to ${formatDate(order.checkOut)}\n` +
+    `${order.guests} guest${order.guests > 1 ? "s" : ""}\n` +
+    `Amount: ${naira(Number(order.amount))}\n` +
+    `Ref: ${order.reference}`,
+
+  footerText: "Respond within 30 minutes.",
+
+  buttons: [
+    {
+      id: `hotel_confirm:${order.reference}`,
+      title: "✅ Confirm",
+    },
+    {
+      id: `hotel_decline:${order.reference}`,
+      title: "❌ Decline",
+    },
+  ],
+});
 }
 
 /** Fired when the hotel declines a booking request — lets the guest know. */
@@ -284,4 +323,38 @@ export async function handleUpsellOfferInput(text: string, context: Conversation
     },
     reply: `Room types at ${offer.name}:\n\n${list}\n\nReply with a number to select.`,
   };
+}
+
+
+
+
+/** Fired when the hotel marks the guest as checked in. */
+export async function notifyGuestCheckedIn(
+  order: db.HotelOrderRow
+): Promise<void> {
+  const hotel = await db.getHotelById(order.hotelId);
+
+  await sendMessage(
+    order.phone,
+    `You've successfully checked in.\n\n` +
+      `${hotel?.name ?? "Your hotel"}\n` +
+      `${order.roomTypeName}\n` +
+      `${formatDate(order.checkIn)} to ${formatDate(order.checkOut)} (${order.nights} night${order.nights > 1 ? "s" : ""})\n\n` +
+      `We hope you enjoy your stay.`
+  );
+}
+
+/** Fired when the hotel marks the stay as completed. */
+export async function notifyGuestStayCompleted(
+  order: db.HotelOrderRow
+): Promise<void> {
+  const hotel = await db.getHotelById(order.hotelId);
+
+  await sendMessage(
+    order.phone,
+    `Your stay has been marked as completed.\n\n` +
+      `${hotel?.name ?? "Your hotel"}\n` +
+      `Ref: ${order.reference}\n\n` +
+      `Thank you for booking with OX. We hope to host you again soon.`
+  );
 }

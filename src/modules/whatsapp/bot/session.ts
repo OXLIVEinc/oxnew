@@ -1,5 +1,6 @@
 import { redis } from '../db/redis';
 import { Session, ConversationState, ConversationContext } from '../types';
+import { BotReply } from '../types';
 
 /**
  * Session state lives in Redis, keyed by phone number, with a TTL so stale
@@ -38,13 +39,18 @@ export async function setState(
   phone: string,
   state: ConversationState,
   contextPatch: Partial<ConversationContext> = {},
-  lastPrompt?: string
+  lastPrompt?: string,
+  lastCta?: BotReply["cta"]
 ): Promise<Session> {
   const session = await getSession(phone);
+
   session.state = state;
   session.context = { ...session.context, ...contextPatch };
   session.updatedAt = Date.now();
-  if (lastPrompt !== undefined) session.lastPrompt = lastPrompt;
+
+  session.lastPrompt = lastPrompt;
+  session.lastCta = lastCta;
+
   await writeRaw(phone, session);
   return session;
 }
@@ -63,10 +69,12 @@ export async function resetSession(phone: string): Promise<Session> {
 export async function pauseSession(phone: string): Promise<Session> {
   const session = await getSession(phone);
   session.paused = {
-    state: session.state,
-    context: session.context,
-    lastPrompt: session.lastPrompt,
-  };
+  state: session.state,
+  context: session.context,
+  lastPrompt: session.lastPrompt,
+  lastCta: session.lastCta,
+};
+  console.log(session)
   session.state = 'MAIN_MENU';
   session.context = {};
   session.updatedAt = Date.now();
@@ -80,8 +88,9 @@ export async function resumeSession(phone: string): Promise<Session | null> {
   if (!session.paused) return null;
 
   session.state = session.paused.state;
-  session.context = session.paused.context;
-  session.lastPrompt = session.paused.lastPrompt;
+session.context = session.paused.context;
+session.lastPrompt = session.paused.lastPrompt;
+session.lastCta = session.paused.lastCta;
   session.paused = undefined;
   session.updatedAt = Date.now();
   await writeRaw(phone, session);

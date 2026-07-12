@@ -18,7 +18,6 @@ export type HotelPartnerRow = schema.HotelPartner;
 
 export const PAGE_SIZE = 10;
 
-/** Thrown when a buyer tries to order more tickets than a limited tier has left (or it's sold out). */
 export class TierUnavailableError extends Error {}
 
 export interface Page<T> {
@@ -63,6 +62,17 @@ export async function getOrCreateProfile(phone: string, waName?: string | null):
     .values({ phone, displayName: waName || null })
     .returning();
   return created;
+}
+
+
+export async function getProfileByUserId(userId: string): Promise<schema.Profile | null> {
+  const [profile] = await db
+    .select()
+    .from(schema.profiles)
+    .where(eq(schema.profiles.userId, userId))
+    .limit(1);
+
+  return profile ?? null;
 }
 
 // ---------------------------------------------------------------------------

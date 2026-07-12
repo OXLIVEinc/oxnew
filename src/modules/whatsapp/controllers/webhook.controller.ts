@@ -1,8 +1,10 @@
 import { Request, Response } from 'express';
 import { handleMessage } from '../bot/router';
-import { completeTicketOrderPayment,completeHotelOrderPayment } from '../bot/payments';
+import { completeTicketOrderPayment, completeHotelOrderPayment } from '../bot/payments';
 import { markAsReadAndShowTyping } from '../lib/whatsapp';
-import { sendMessage,sendCtaUrlMessage } from '../bot/messenger';
+import { sendMessage, sendCtaUrlMessage } from '../bot/messenger';
+import { normalizeIncomingPhone } from '@/utils/helpers';
+
 
 export const whatsappWebhook = {
   get: (req: Request, res: Response) => {
@@ -29,10 +31,25 @@ export const whatsappWebhook = {
           const contacts = value.contacts || [];
 
           for (const message of messages) {
-            const phone = message.from;
+            const phone = normalizeIncomingPhone(message.from);
+            console.log(phone,message.from)
             const messageId = message.id;
-            const text = message.text?.body;
-            const waName = contacts.find((c: any) => c.wa_id === phone)?.profile?.name;
+
+
+            // Default to a normal text message.
+            let text = message.text?.body ?? "";
+
+            // Handle reply button presses.
+            const buttonId = message.interactive?.button_reply?.id;
+
+            if (buttonId?.startsWith("hotel_confirm:")) {
+              text = `CONFIRM ${buttonId.split(":")[1]}`;
+            } else if (buttonId?.startsWith("hotel_decline:")) {
+              text = `DECLINE ${buttonId.split(":")[1]}`;
+            }
+
+            const waName =
+              contacts.find((c: any) => normalizeIncomingPhone(c.wa_id) === phone)?.profile?.name;
 
             if (!phone || !text || !messageId) continue;
 

@@ -1,5 +1,6 @@
 import * as db from "../data/db";
 import { sendMessage } from "../bot/messenger";
+import { getProfileByUserId } from "../data/db";
 
 const OX_WHATSAPP_NUMBER = process.env.OX_WHATSAPP_NUMBER || "2348100000000";
 

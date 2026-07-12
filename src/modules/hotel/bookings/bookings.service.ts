@@ -21,6 +21,7 @@ import {
 import * as hotelEvents from "../hotel.events";
 import * as repo from "./bookings.repository";
 import type { BookingAction, BookingListParams } from "./bookings.types";
+import { deliverConfirmedHotelOrder, notifyGuestOfDecline, notifyGuestCheckedIn,notifyGuestStayCompleted } from "@/modules/whatsapp/bot/flows/hotelFlow";
 
 export function getValidActions(status: string, checkedIn: boolean): BookingAction[] {
   switch (status) {
@@ -99,7 +100,16 @@ export async function confirmBooking(profileId: string, orderId: string) {
   const updated = await confirmHotelOrder(orderId);
   await hotelEvents.notifyBookingConfirmed(updated);
 
-  return getBookingDetail(profileId, orderId);
+await hotelEvents.notifyBookingConfirmed(updated);
+
+try {
+  await deliverConfirmedHotelOrder(updated);
+} catch (err) {
+  console.error("Failed to notify guest:", err);
+}
+
+return getBookingDetail(profileId, orderId);
+
 }
 
 export async function declineBooking(profileId: string, orderId: string) {
@@ -111,7 +121,11 @@ export async function declineBooking(profileId: string, orderId: string) {
 
   const updated = await declineHotelOrder(orderId);
   await hotelEvents.notifyBookingDeclined(updated);
-
+  try {
+  await notifyGuestOfDecline(updated);
+} catch (err) {
+  console.error(err);
+}
   return getBookingDetail(profileId, orderId);
 }
 
@@ -122,8 +136,20 @@ export async function markCheckedIn(profileId: string, orderId: string) {
     throw AppError.conflict(`Booking must be confirmed before check-in (current status "${order.status}")`);
   }
 
-  await repo.recordCheckIn(orderId, profileId, order.reference);
-  await hotelEvents.notifyBookingUpdated(order, { checkedIn: true });
+  const updated = await repo.recordCheckIn(
+  orderId,
+  profileId,
+  order.reference
+);
+
+await hotelEvents.notifyBookingUpdated(updated, { checkedIn: true });
+await notifyGuestCheckedIn(updated);
+
+  try {
+  await notifyGuestCheckedIn(updated);
+} catch (err) {
+  console.error(err);
+}
 
   return getBookingDetail(profileId, orderId);
 }
@@ -148,6 +174,12 @@ const [updated] = await db
   .returning();
 
   await hotelEvents.notifyBookingCompleted(updated);
+
+  try {
+  await notifyGuestStayCompleted(updated);
+} catch (err) {
+  console.error(err);
+}
 
   return getBookingDetail(profileId, orderId);
 }

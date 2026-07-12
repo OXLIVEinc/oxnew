@@ -1,7 +1,3 @@
-/**
- * src/components/hotel/BookingDetailDialog.tsx
- * -------------------------------------------------------------------------
- */
 import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -18,136 +14,209 @@ interface Props {
 
 export const BookingDetailDialog: React.FC<Props> = ({ bookingId, onClose }) => {
   const { data: booking, isLoading } = useHotelBooking(bookingId ?? undefined);
+
   const confirm = useConfirmBooking();
   const decline = useDeclineBooking();
   const checkIn = useCheckInBooking();
   const complete = useCompleteBooking();
 
-  const busy = confirm.isPending || decline.isPending || checkIn.isPending || complete.isPending;
+  const isBusy = confirm.isPending || decline.isPending || checkIn.isPending || complete.isPending;
 
   return (
     <Dialog open={Boolean(bookingId)} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Booking Details</DialogTitle>
+      <DialogContent className="max-w-xl p-0 overflow-hidden sm:max-w-2xl">
+        <DialogHeader className="px-6 py-4 border-b bg-muted/50">
+          <DialogTitle className="text-xl font-semibold">Booking Details</DialogTitle>
         </DialogHeader>
 
-        {isLoading || !booking ? (
-          <div className="space-y-3">
-            <Skeleton className="h-6 w-1/2" />
-            <Skeleton className="h-24 w-full" />
-            <Skeleton className="h-24 w-full" />
-          </div>
-        ) : (
-          <div className="space-y-5">
-            <div className="flex items-center justify-between">
-              <span className="font-mono text-sm text-muted-foreground">{booking.reference}</span>
-              <Badge variant={STATUS_BADGE_VARIANT[booking.status] ?? "outline"}>{statusLabel(booking.status)}</Badge>
-            </div>
-
-            <section>
-              <h4 className="text-sm font-semibold mb-2">Guest Information</h4>
-              <dl className="grid grid-cols-2 gap-y-1 text-sm">
-                <dt className="text-muted-foreground">Name</dt>
-                <dd>{booking.guestName || "—"}</dd>
-                <dt className="text-muted-foreground">Phone</dt>
-                <dd>{booking.guestPhone}</dd>
-                <dt className="text-muted-foreground">Email</dt>
-                <dd>{booking.guestEmail || "—"}</dd>
-              </dl>
-            </section>
-
-            <Separator />
-
-            <section>
-              <h4 className="text-sm font-semibold mb-2">Booking Information</h4>
-              <dl className="grid grid-cols-2 gap-y-1 text-sm">
-                <dt className="text-muted-foreground">Room Type</dt>
-                <dd>{booking.roomTypeName}</dd>
-                <dt className="text-muted-foreground">Guests</dt>
-                <dd>{booking.guests}</dd>
-                <dt className="text-muted-foreground">Check-in</dt>
-                <dd>{formatDateTime(booking.checkIn)}</dd>
-                <dt className="text-muted-foreground">Check-out</dt>
-                <dd>{formatDateTime(booking.checkOut)}</dd>
-                <dt className="text-muted-foreground">Nights</dt>
-                <dd>{booking.nights}</dd>
-                <dt className="text-muted-foreground">Checked in</dt>
-                <dd>{booking.checkedIn ? "Yes" : "No"}</dd>
-              </dl>
-            </section>
-
-            <Separator />
-
-            <section>
-              <h4 className="text-sm font-semibold mb-2">Payment Information</h4>
-              <dl className="grid grid-cols-2 gap-y-1 text-sm">
-                <dt className="text-muted-foreground">Price / Night</dt>
-                <dd>{formatNaira(booking.pricePerNight)}</dd>
-                <dt className="text-muted-foreground">Subtotal</dt>
-                <dd>{formatNaira(booking.subtotal)}</dd>
-                <dt className="text-muted-foreground">Service Fee</dt>
-                <dd>{formatNaira(booking.serviceFee)}</dd>
-                <dt className="text-muted-foreground">Total Paid</dt>
-                <dd className="font-semibold">{formatNaira(booking.amount)}</dd>
-                <dt className="text-muted-foreground">Provider Ref</dt>
-                <dd className="truncate">{booking.paystackReference || "—"}</dd>
-              </dl>
-            </section>
-
-            {booking.specialRequests && (
-              <>
-                <Separator />
-                <section>
-                  <h4 className="text-sm font-semibold mb-2">Special Requests</h4>
-                  <p className="text-sm text-muted-foreground">{booking.specialRequests}</p>
-                </section>
-              </>
-            )}
-
-            <Separator />
-
-            <section>
-              <h4 className="text-sm font-semibold mb-2">Booking Timeline</h4>
-              <ol className="space-y-2">
-                {booking.timeline.map((event, i) => (
-                  <li key={i} className="flex items-center justify-between text-sm">
-                    <span>{event.label}</span>
-                    <span className="text-muted-foreground text-xs">{formatDateTime(event.at)}</span>
-                  </li>
-                ))}
-              </ol>
-            </section>
-
-            {booking.validActions.length > 0 && (
-              <>
-                <Separator />
-                <div className="flex flex-wrap gap-2">
-                  {booking.validActions.includes("confirm") && (
-                    <Button disabled={busy} onClick={() => confirm.mutate(booking.id)}>
-                      Confirm Booking
-                    </Button>
-                  )}
-                  {booking.validActions.includes("decline") && (
-                    <Button variant="destructive" disabled={busy} onClick={() => decline.mutate(booking.id)}>
-                      Decline Booking
-                    </Button>
-                  )}
-                  {booking.validActions.includes("check_in") && (
-                    <Button variant="outline" disabled={busy} onClick={() => checkIn.mutate(booking.id)}>
-                      Mark Checked In
-                    </Button>
-                  )}
-                  {booking.validActions.includes("complete") && (
-                    <Button variant="outline" disabled={busy} onClick={() => complete.mutate(booking.id)}>
-                      Mark Completed
-                    </Button>
-                  )}
+        <div className="overflow-y-auto max-h-[85vh] p-6 space-y-8">
+          {isLoading || !booking ? (
+            <div className="space-y-8">
+              <Skeleton className="h-6 w-40" />
+              <div className="grid grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <Skeleton className="h-5 w-32" />
+                  <Skeleton className="h-20 w-full" />
                 </div>
-              </>
-            )}
-          </div>
-        )}
+                <div className="space-y-4">
+                  <Skeleton className="h-5 w-32" />
+                  <Skeleton className="h-20 w-full" />
+                </div>
+              </div>
+              <Skeleton className="h-px w-full" />
+              <Skeleton className="h-40 w-full" />
+            </div>
+          ) : (
+            <>
+              {/* Header Info */}
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-sm text-muted-foreground tracking-wider">
+                  {booking.reference}
+                </span>
+                <Badge variant={STATUS_BADGE_VARIANT[booking.status] ?? "outline"} className="capitalize">
+                  {statusLabel(booking.status)}
+                </Badge>
+              </div>
+
+              {/* Guest Information */}
+              <section>
+                <h4 className="text-sm font-semibold mb-3 text-foreground">Guest Information</h4>
+                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+                  <div>
+                    <dt className="text-muted-foreground mb-1">Full Name</dt>
+                    <dd className="font-medium">{booking.guestName || "—"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground mb-1">Phone Number</dt>
+                    <dd>{booking.guestPhone}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground mb-1">Email Address</dt>
+                    <dd className="break-all">{booking.guestEmail || "—"}</dd>
+                  </div>
+                </dl>
+              </section>
+
+              <Separator />
+
+              {/* Booking Information */}
+              <section>
+                <h4 className="text-sm font-semibold mb-3 text-foreground">Booking Information</h4>
+                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+                  <div>
+                    <dt className="text-muted-foreground mb-1">Room Type</dt>
+                    <dd className="font-medium">{booking.roomTypeName}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground mb-1">Number of Guests</dt>
+                    <dd>{booking.guests}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground mb-1">Check-in Date</dt>
+                    <dd>{formatDateTime(booking.checkIn)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground mb-1">Check-out Date</dt>
+                    <dd>{formatDateTime(booking.checkOut)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground mb-1">Nights</dt>
+                    <dd className="font-medium">{booking.nights}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground mb-1">Checked In</dt>
+                    <dd className="font-medium">{booking.checkedIn ? "Yes" : "No"}</dd>
+                  </div>
+                </dl>
+              </section>
+
+              <Separator />
+
+              {/* Payment Information */}
+              <section>
+                <h4 className="text-sm font-semibold mb-3 text-foreground">Payment Information</h4>
+                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+                  <div>
+                    <dt className="text-muted-foreground mb-1">Price per Night</dt>
+                    <dd>{formatNaira(booking.pricePerNight)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground mb-1">Subtotal</dt>
+                    <dd>{formatNaira(booking.subtotal)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground mb-1">Service Fee</dt>
+                    <dd>{formatNaira(booking.serviceFee)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground mb-1">Total Paid</dt>
+                    <dd className="font-semibold text-lg tracking-tight">{formatNaira(booking.amount)}</dd>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <dt className="text-muted-foreground mb-1">Provider Reference</dt>
+                    <dd className="font-mono text-xs break-all text-muted-foreground">
+                      {booking.reference || "—"}
+                    </dd>
+                  </div>
+                </dl>
+              </section>
+
+              {/* Special Requests */}
+              {booking.specialRequests && (
+                <>
+                  <Separator />
+                  <section>
+                    <h4 className="text-sm font-semibold mb-3 text-foreground">Special Requests</h4>
+                    <div className="bg-muted/50 border rounded-lg p-4 text-sm">
+                      {booking.specialRequests}
+                    </div>
+                  </section>
+                </>
+              )}
+
+              <Separator />
+
+              {/* Timeline */}
+              <section>
+                <h4 className="text-sm font-semibold mb-3 text-foreground">Booking Timeline</h4>
+                <div className="space-y-4">
+                  {booking.timeline.map((event, index) => (
+                    <div key={index} className="flex justify-between items-center text-sm border-l-2 border-muted pl-4">
+                      <span>{event.label}</span>
+                      <span className="text-xs text-muted-foreground tabular-nums">
+                        {formatDateTime(event.at)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              {/* Action Buttons */}
+              {booking.validActions.length > 0 && (
+                <>
+                  <Separator />
+                  <div className="flex flex-wrap gap-3 pt-2">
+                    {booking.validActions.includes("confirm") && (
+                      <Button onClick={() => confirm.mutate(booking.id)} disabled={isBusy} size="default">
+                        Confirm Booking
+                      </Button>
+                    )}
+
+                    {booking.validActions.includes("decline") && (
+                      <Button
+                        variant="destructive"
+                        onClick={() => decline.mutate(booking.id)}
+                        disabled={isBusy}
+                      >
+                        Decline Booking
+                      </Button>
+                    )}
+
+                    {booking.validActions.includes("check_in") && (
+                      <Button
+                        variant="outline"
+                        onClick={() => checkIn.mutate(booking.id)}
+                        disabled={isBusy}
+                      >
+                        Mark as Checked In
+                      </Button>
+                    )}
+
+                    {booking.validActions.includes("complete") && (
+                      <Button
+                        variant="outline"
+                        onClick={() => complete.mutate(booking.id)}
+                        disabled={isBusy}
+                      >
+                        Mark as Completed
+                      </Button>
+                    )}
+                  </div>
+                </>
+              )}
+            </>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );

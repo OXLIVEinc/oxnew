@@ -1,5 +1,5 @@
 import * as db from '../../data/db';
-import { naira, asNumberChoice, isMoreCommand, FALLBACK, formatEventDateTime } from '../helpers';
+import { naira, asNumberChoice, isMoreCommand, FALLBACK, formatEventDateTime,getEventCheckoutCta, getEventCheckoutStartCta } from '../helpers';
 import { ConversationContext, EventSearchResultItem, FlowResult } from '../../types';
 
 const CHECKOUT_BASE_URL = process.env.CHECKOUT_BASE_URL || 'https://ox.app';
@@ -26,6 +26,7 @@ export async function enterViaDeepLink(event: db.EventRow): Promise<FlowResult> 
       eventName: event.title,
       eventDateLabel: formatEventDateTime(event.startsAt, event.endsAt),
       eventAddress: event.address,
+      eventIsPaid: event.isPaid,
       eventBackgroundImageUrl: event.backgroundImageUrl,
       maxPerOrder: event.maxPerOrder,
       tierOptions: availableTiers.map((t) => ({ id: t.id, label: t.name, price: Number(t.price) })),
@@ -206,16 +207,16 @@ export async function handleQtyInput(text: string, context: ConversationContext,
     orderId: order.id,
     orderReference: order.reference,
     checkoutLink,
+    ticketOrderExpiresAt: order.expiresAt?.toISOString(),
   },
   reply: null,
-  cta: {
-    bodyText:
-      `${qty} ticket${qty > 1 ? 's' : ''} of ${context.tierLabel} for ${context.eventName}.\n\n` +
-      `Tap the button below to enter each guest's name and email, then pay securely.\n\n` +
-      `Once payment is confirmed, your tickets will arrive right here in this chat automatically.`,
-    footerText: 'Expires in 30 minutes',
-    buttonText: 'Complete Checkout',
-    url: checkoutLink,
-  },
+  cta: getEventCheckoutStartCta(
+  checkoutLink,
+  !!context.eventIsPaid,
+  qty,
+  context.tierLabel!,
+  context.eventName!,
+  order.expiresAt!
+),
 };
 }

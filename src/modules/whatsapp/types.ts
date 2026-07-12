@@ -18,6 +18,7 @@ export type ConversationState =
   | 'HOTEL_GUESTS'
   | 'HOTEL_ORDER_PENDING'
   | 'HOTEL_UPSELL_OFFER'
+  | 'HOTEL_CONFIRM_ACTION'
   | 'TRANSFER_INIT'
   | 'TRANSFER_SELECT_TICKET'
   | 'TRANSFER_RECIPIENT_PHONE'
@@ -75,6 +76,7 @@ export interface ConversationContext {
   maxPerOrder?: number;
   tierOptions?: { id: string; label: string; price: number }[];
   roomCapacity?: number, // <-- add this
+   eventIsPaid?: boolean;
 
   tierId?: string;
   tierLabel?: string;
@@ -127,6 +129,11 @@ export interface ConversationContext {
   ticketTierLabel?: string;
   recipientPhone?: string;
 
+   hotelAction?: {
+    action: 'CONFIRM' | 'DECLINE';
+    reference: string;
+  };
+
   // Stashed here while we ask "resume paused booking, or start this new
   // one?" (PAUSED_CHOICE state) — whichever the buyer picks, we either
   // restore session.paused or apply this pending action.
@@ -135,6 +142,10 @@ export interface ConversationContext {
     contextPatch?: Partial<ConversationContext>;
     reply?: string | null;
   };
+
+
+ticketOrderExpiresAt?: string;
+hotelOrderExpiresAt?: string;
 }
 
 export interface Session {
@@ -142,15 +153,19 @@ export interface Session {
   state: ConversationState;
   context: ConversationContext;
   updatedAt: number;
-  /** The last message the bot sent while inside a flow — used to redisplay the prompt on RESUME. */
+
   lastPrompt?: string;
-  /** Set by PAUSE when a flow was mid-way; restored by RESUME. Only one paused flow is ever kept at a time. */
+  lastCta?: BotReply["cta"];
+
   paused?: {
     state: ConversationState;
     context: ConversationContext;
     lastPrompt?: string;
+    lastCta?: BotReply["cta"];
   };
 }
+
+
 
 /**
  * A WhatsApp "cta_url" interactive message — a proper clickable button

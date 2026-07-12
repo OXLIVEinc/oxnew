@@ -1,9 +1,3 @@
-/**
- * server/modules/hotel/bookings/bookings.controller.ts
- * -------------------------------------------------------------------------
- * Thin HTTP layer over bookings.service.
- * -------------------------------------------------------------------------
- */
 import type { Request, Response } from "express";
 import { asyncHandler } from "@/middleware/error.middleware";
 import * as bookingsService from "./bookings.service";
