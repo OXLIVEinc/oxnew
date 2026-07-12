@@ -84,8 +84,8 @@ export function getEventCheckoutCta(
     footerText: getExpiryFooter(expiresAt),
 
     buttonText: eventIsPaid
-      ? "Complete Checkout"
-      : "Complete Registration",
+  ? "Complete Checkout"
+  : "Register Now",
 
     url: checkoutLink,
   };
@@ -111,8 +111,8 @@ export function getEventCheckoutStartCta(
     footerText: getExpiryFooter(expiresAt),
 
     buttonText: eventIsPaid
-      ? "Complete Checkout"
-      : "Complete Registration",
+  ? "Complete Checkout"
+  : "Register Now",
 
     url: checkoutLink,
   };

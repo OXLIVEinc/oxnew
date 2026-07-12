@@ -1,5 +1,5 @@
 import * as db from '../../data/db';
-import { naira, asNumberChoice, isMoreCommand, FALLBACK, formatEventDateTime,getEventCheckoutCta, getEventCheckoutStartCta } from '../helpers';
+import { naira, asNumberChoice, isMoreCommand, FALLBACK, formatEventDateTime, getEventCheckoutStartCta } from '../helpers';
 import { ConversationContext, EventSearchResultItem, FlowResult } from '../../types';
 
 const CHECKOUT_BASE_URL = process.env.CHECKOUT_BASE_URL || 'https://ox.app';
