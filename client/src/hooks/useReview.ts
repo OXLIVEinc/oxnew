@@ -17,7 +17,7 @@ import type {
   Session,
   TicketTier,
 } from "../types";
-import { Event } from "@shared/schema";
+import { type Event } from "../types";
 
 export const useReview = (sessionId: string): ReviewState & { reload: () => Promise<void> } => {
   const [loading, setLoading] = useState(true);

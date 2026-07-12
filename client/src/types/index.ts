@@ -1,4 +1,3 @@
-import { Event } from "@shared/schema";
 
 export interface SessionContext {
   eventId?: string;
@@ -139,3 +138,57 @@ export type AttendeeFormValues =
   z.infer<
     typeof attendeeArraySchema
   >;
+
+
+  export interface OrganizerProfile {
+  id: string;
+  userId: string;
+  brandName: string;
+  bio: string | null;
+  profilePhotoUrl: string | null;
+  website: string | null;
+  instagram: string | null;
+  twitter: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Event {
+  id: string;
+  isFeatured: boolean;
+  eventCode: string;
+  title: string;
+  description: string | null;
+  createdBy: string;
+  startsAt: Date;
+  endsAt: Date | null;
+  startTime: string;
+  endTime: string | null;
+  backgroundImageUrl: string;
+  mobileBannerUrl: string | null;
+  desktopBannerUrl: string | null;
+  address: string;
+  locationLat: string;
+  locationLng: string;
+  isPaid: boolean;
+  ageGroup: string | null;
+  genre: string | null;
+  tags: string[] | null;
+  maxPerOrder: number;
+  status: string;
+  approvalStatus: "pending" | "approved" | "rejected";
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Profile {
+  id: string;
+  userId: string | null;
+  email: string | null;
+  displayName: string | null;
+  phone: string | null;
+  gender: string | null;
+  locationCountry: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
