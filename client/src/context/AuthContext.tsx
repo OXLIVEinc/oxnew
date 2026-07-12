@@ -10,7 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
 import { AuthLoadingScreen } from '@/components/AuthLoading';
 import { normalizePhone } from "@/utils";
-import { useToast } from "@/hooks/use-toast"; // we'll use it inside context if needed, or pass callbacks
+import { useToast } from "@/hooks/use-toast";
 
 export type UserRole = 'admin' | 'organizer' | 'guest' | 'hotel_partner' | null;
 type Profile = Tables<'profiles'>;
@@ -37,8 +37,8 @@ interface AuthContextValue {
     password: string;
     displayName?: string;
     role: "organizer" | "guest" | "hotel_partner";
-    phone?: string;        // for organizer/guest
-    whatsapp?: string;     // for hotel_partner
+    phone?: string;
+    whatsapp?: string;
   }) => Promise<void>;
 }
 
@@ -53,61 +53,97 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [role, setRole] = useState<UserRole>(null);
   const [loading, setLoading] = useState(true);
 
-  const { toast } = useToast(); // you can also choose to pass toast callbacks from components
+  const { toast } = useToast();
 
   const loadProfileAndRole = useCallback(async (userId: string) => {
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
+    try {
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
 
-    setProfile(profileData ?? null);
-    if (!profileData) {
-      setRole(null);
-      return;
-    }
+      if (profileError) throw profileError;
 
-    const { data: roleRows } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', profileData.id);
+      setProfile(profileData ?? null);
 
-    const roles = roleRows?.map((r) => r.role) ?? [];
-    if (roles.includes('admin')) setRole('admin');
-    else if (roles.includes('organizer')) setRole('organizer');
-    else if (roles.includes('hotel_partner')) setRole('hotel_partner');
-    else if (roles.includes('guest')) setRole('guest');
-    else setRole(null);
-  }, []);
+      if (!profileData) {
+        setRole(null);
+        return;
+      }
 
-  const hydrate = useCallback(async (nextSession: Session | null) => {
-    setSession(nextSession);
-    setAuthUser(nextSession?.user ?? null);
-    if (nextSession?.user) {
-      await loadProfileAndRole(nextSession.user.id);
-    } else {
+      const { data: roleRows, error: roleError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', profileData.id);
+
+      if (roleError) throw roleError;
+
+      const roles = roleRows?.map((r) => r.role) ?? [];
+
+      if (roles.includes('admin')) setRole('admin');
+      else if (roles.includes('organizer')) setRole('organizer');
+      else if (roles.includes('hotel_partner')) setRole('hotel_partner');
+      else if (roles.includes('guest')) setRole('guest');
+      else setRole(null);
+    } catch (err: any) {
+      console.error('Failed to load profile/role:', err);
+      toast({
+        title: "Error loading profile",
+        description: "Please refresh the page or try signing in again.",
+        variant: "destructive",
+      });
       setProfile(null);
       setRole(null);
     }
-  }, [loadProfileAndRole]);
-
-  // ==================== NEW: Sign In ====================
-  const signIn = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) throw error;
-
-    toast({
-      title: "Welcome back!",
-      description: "You have successfully signed in.",
-    });
   }, [toast]);
 
-  // ==================== NEW: Sign Up ====================
+  const hydrate = useCallback(
+    async (nextSession: Session | null) => {
+      setSession(nextSession);
+      setAuthUser(nextSession?.user ?? null);
+
+      if (nextSession?.user) {
+        await loadProfileAndRole(nextSession.user.id);
+      } else {
+        setProfile(null);
+        setRole(null);
+      }
+    },
+    [loadProfileAndRole],
+  );
+
+  // ==================== Sign In ====================
+  const signIn = useCallback(async (email: string, password: string) => {
+    try {
+      toast({
+        title: "Signing in...",
+        description: "Please wait",
+      });
+
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Welcome back!",
+        description: "You have successfully signed in.",
+      });
+    } catch (err: any) {
+      console.error('Sign in error:', err);
+      toast({
+        title: "Sign in failed",
+        description: err.message || "Please check your credentials and try again.",
+        variant: "destructive",
+      });
+      throw err;
+    }
+  }, [toast]);
+
+  // ==================== Sign Up ====================
   const signUp = useCallback(async ({
     email,
     password,
@@ -123,57 +159,71 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     phone?: string;
     whatsapp?: string;
   }) => {
-    const phoneNumber = normalizePhone(
-      selectedRole === "hotel_partner" ? whatsapp! : phone!
-    );
+    try {
+      toast({
+        title: "Creating account...",
+      });
 
-    // Check existing profile (email or phone)
-    const { data: existingProfile, error: profileError } = await supabase
-      .from("profiles")
-      .select("id, email, phone")
-      .or(`email.eq.${email},phone.eq.${phoneNumber}`)
-      .maybeSingle();
+      const phoneNumber = normalizePhone(
+        selectedRole === "hotel_partner" ? (whatsapp || "") : (phone || "")
+      );
 
-    if (profileError) throw profileError;
+      // Check existing profile
+      const { data: existingProfile, error: profileError } = await supabase
+        .from("profiles")
+        .select("id, email, phone")
+        .or(`email.eq.${email},phone.eq.${phoneNumber}`)
+        .maybeSingle();
 
-    if (existingProfile) {
-      if (existingProfile.email === email) {
-        throw new Error("An account with this email already exists.");
-      } else {
-        throw new Error("An account with this phone number already exists.");
+      if (profileError) throw profileError;
+
+      if (existingProfile) {
+        if (existingProfile.email === email) {
+          throw new Error("An account with this email already exists.");
+        } else {
+          throw new Error("An account with this phone number already exists.");
+        }
       }
-    }
 
-    // Role-specific validation
-    if (selectedRole === "hotel_partner") {
-      if (!whatsapp?.trim()) throw new Error("WhatsApp number is required for Hotel Partner");
-    } else if (!phone?.trim()) {
-      throw new Error("Phone number is required");
-    }
+      // Role-specific validation
+      if (selectedRole === "hotel_partner") {
+        if (!whatsapp?.trim()) throw new Error("WhatsApp number is required for Hotel Partner");
+      } else if (!phone?.trim()) {
+        throw new Error("Phone number is required");
+      }
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/`,
-        data: {
-          display_name: displayName || email.split("@")[0],
-          phone: selectedRole === "hotel_partner" ? whatsapp : phone,
-          whatsapp: selectedRole === "hotel_partner" ? whatsapp : null,
-          role: selectedRole,
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+          data: {
+            display_name: displayName || email.split("@")[0],
+            phone: selectedRole === "hotel_partner" ? whatsapp : phone,
+            whatsapp: selectedRole === "hotel_partner" ? whatsapp : null,
+            role: selectedRole,
+          },
         },
-      },
-    });
+      });
 
-    if (error) throw error;
+      if (error) throw error;
 
-    toast({
-      title: "Account created!",
-      description: "Please check your email to verify your account.",
-    });
+      toast({
+        title: "Account created!",
+        description: "Please check your email to verify your account.",
+      });
+    } catch (err: any) {
+      console.error('Sign up error:', err);
+      toast({
+        title: "Sign up failed",
+        description: err.message || "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+      throw err;
+    }
   }, [toast]);
 
-  // Existing effects...
+  // Auth state listener
   useEffect(() => {
     let mounted = true;
 
@@ -185,22 +235,65 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      hydrate(nextSession);
+    } = supabase.auth.onAuthStateChange(async (event, nextSession) => {
+      await hydrate(nextSession);
+
+      // Toast feedback for auth events
+      switch (event) {
+        case 'SIGNED_IN':
+          toast({
+            title: "Signed in successfully",
+          });
+          break;
+        case 'SIGNED_OUT':
+          toast({
+            title: "Signed out",
+            description: "You have been logged out.",
+          });
+          break;
+        case 'USER_UPDATED':
+          toast({
+            title: "Profile updated",
+          });
+          break;
+      }
     });
 
     return () => {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [hydrate]);
+  }, [hydrate, toast]);
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
-  }, []);
+    try {
+      toast({
+        title: "Signing out...",
+      });
+      await supabase.auth.signOut();
+      toast({
+        title: "Signed out successfully",
+      });
+    } catch (err: any) {
+      console.error('Sign out error:', err);
+      toast({
+        title: "Sign out failed",
+        description: "Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [toast]);
 
   const refresh = useCallback(async () => {
-    if (authUser) await loadProfileAndRole(authUser.id);
+    if (!authUser) return;
+    try {
+      await loadProfileAndRole(authUser.id);
+      toast({
+        title: "Profile refreshed",
+      });
+    } catch (err) {
+      // Error already handled in loadProfileAndRole
+    }
   }, [authUser, loadProfileAndRole]);
 
   const value: AuthContextValue = {
