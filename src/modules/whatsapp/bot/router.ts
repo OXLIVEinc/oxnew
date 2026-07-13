@@ -11,7 +11,7 @@ import * as ordersFlow from './flows/ordersFlow';
 import * as hotelPartnersFlow from './flows/hotelPartnerFlow';
 import * as supportFlow from './flows/supportFlow';
 
-import  { resetSession } from './session';
+import { resetSession } from './session';
 
 const PAUSED_CHOICE_PROMPT =
   `You have a paused booking. Would you like to:\n\n` +
@@ -30,7 +30,7 @@ const PAUSED_CHOICE_PROMPT =
  * @returns what to send back. `followUp` (if present) should be sent as a
  *          second message.
  */
-export async function handleMessage(phone: string, text: string, waName?: string | null,media?:IncomingMedia): Promise<BotReply> {
+export async function handleMessage(phone: string, text: string, waName?: string | null, media?: IncomingMedia): Promise<BotReply> {
   const trimmed = (text || '').trim();
   console.log(trimmed)
 
@@ -41,9 +41,9 @@ export async function handleMessage(phone: string, text: string, waName?: string
   // -------------------------------------------------------------------
   const hotelPartner = await db.findHotelByWhatsappNumber(phone);
 
-if (hotelPartner) {
-  return hotelPartnersFlow.handleMessage(phone, trimmed, hotelPartner,waName as string);
-}
+  if (hotelPartner) {
+    return hotelPartnersFlow.handleMessage(phone, trimmed, hotelPartner, waName as string);
+  }
 
   // -------------------------------------------------------------------
   // 0b. "CANCEL <reference>" manually cancels a pending order/booking/
@@ -70,8 +70,8 @@ if (hotelPartner) {
     const cmd = trimmed.toLowerCase();
 
     if (cmd === 'help') {
-  return apply(phone, supportFlow.startSupport());
-}
+      return apply(phone, supportFlow.startSupport());
+    }
 
     if (cmd === 'pending') {
       const result = await ordersFlow.showPending(phone);
@@ -91,41 +91,41 @@ if (hotelPartner) {
         reply: `Your progress has been paused.\n\n` + mainMenu.showMainMenu(true),
       };
     }
-    
+
 
     if (cmd === 'resume') {
-  const resumed = await resumeSession(phone);
+      const resumed = await resumeSession(phone);
 
-  if (!resumed) {
-    return {
-      reply:
-        `There's nothing to resume right now.\n\n` +
-        mainMenu.showMainMenu(false, await greetingName(phone, waName)),
-    };
-  }
+      if (!resumed) {
+        return {
+          reply:
+            `There's nothing to resume right now.\n\n` +
+            mainMenu.showMainMenu(false, await greetingName(phone, waName)),
+        };
+      }
 
-  return {
-    reply: resumed.lastPrompt
-      ? `Picking up where you left off.\n\n${resumed.lastPrompt}`
-      : null,
-    cta: resumed.lastCta,
-  };
-}
+      return {
+        reply: resumed.lastPrompt
+          ? `Picking up where you left off.\n\n${resumed.lastPrompt}`
+          : null,
+        cta: resumed.lastCta,
+      };
+    }
 
     if (cmd === 'menu') {
-  await resetSession(phone);
+      await resetSession(phone);
 
-  const paused = await hasPausedSession(phone);
+      const paused = await hasPausedSession(phone);
 
-  await setState(phone, 'MAIN_MENU', {});
+      await setState(phone, 'MAIN_MENU', {});
 
-  return {
-    reply: mainMenu.showMainMenu(
-      paused,
-      await greetingName(phone, waName)
-    ),
-  };
-}
+      return {
+        reply: mainMenu.showMainMenu(
+          paused,
+          await greetingName(phone, waName)
+        ),
+      };
+    }
   }
 
   // -------------------------------------------------------------------
@@ -168,7 +168,7 @@ if (hotelPartner) {
 
       if (result.nextState === 'HELP') {
         await setState(phone, 'MAIN_MENU', {});
-        return { reply: HELP_MESSAGE() };
+        return apply(phone, supportFlow.startSupport());;
       }
       // Browsing events, searching hotels, and starting a transfer all
       // count as "starting something new" — gate them behind a paused
@@ -180,7 +180,7 @@ if (hotelPartner) {
         return await maybeGatePaused(phone, await transferFlow.initTransfer(phone));
       }
 
-      if(!result.nextState){
+      if (!result.nextState) {
         return { reply: mainMenu.showMainMenu(false, await greetingName(phone, waName)) };
       }
 
@@ -188,51 +188,62 @@ if (hotelPartner) {
     }
 
     case 'SUPPORT_CATEGORY':
-  return apply(
-    phone,
-    await supportFlow.handleCategorySelection(trimmed)
-  );
-
-  case 'SUPPORT_MESSAGE':
-  return apply(
-    phone,
-    await supportFlow.handleSupportMessage(trimmed)
-  );
-
-case 'SUPPORT_ATTACHMENT_UPLOAD': {
-  // User has finished attaching images
-  if (trimmed.toUpperCase() === 'DONE') {
-    return apply(
-      phone,
-      await supportFlow.submitSupportRequest(
+      return apply(
         phone,
-        waName,
-        context,
-      )
-    );
-  }
+        await supportFlow.handleCategorySelection(trimmed)
+      );
 
-  // User sent an image
-  if (media) {
-    return apply(
+    case 'SUPPORT_MESSAGE':
+      return apply(
+        phone,
+        await supportFlow.handleSupportMessage(trimmed)
+      );
+
+    case 'SUPPORT_ATTACHMENTS':
+  return apply(
+    phone,
+    await supportFlow.handleAttachmentChoice(
+      trimmed,
       phone,
-      await supportFlow.handleAttachmentUpload(context, {
-  id: media.id,
-  filename: media.filename,
-  mimeType: media.mimeType,
-}))
+      waName,
+      context,
+    )
+  );
 
-  }
-  
+    case 'SUPPORT_ATTACHMENT_UPLOAD': {
+      // User has finished attaching images
+      if (trimmed.toUpperCase() === 'DONE') {
+        return apply(
+          phone,
+          await supportFlow.submitSupportRequest(
+            phone,
+            waName,
+            context,
+          )
+        );
+      }
 
-  // User sent something else
-  return {
-    reply:
-      `Please send an image, or reply DONE when you've finished attaching screenshots.`,
-  };
-}
-  
-  
+      // User sent an image
+      if (media) {
+        return apply(
+          phone,
+          await supportFlow.handleAttachmentUpload(context, {
+            id: media.id,
+            filename: media.filename,
+            mimeType: media.mimeType,
+          }))
+
+      }
+
+
+      // User sent something else
+      return {
+        reply:
+          `Please send an image, or reply DONE when you've finished attaching screenshots.`,
+      };
+    }
+
+
     // "My bookings" first asks whether they want tickets, hotel bookings, or both
     case 'BOOKING_KIND_SELECT': {
       const result = mainMenu.handleBookingKindInput(trimmed);
@@ -258,16 +269,16 @@ case 'SUPPORT_ATTACHMENT_UPLOAD': {
       // Buyer is texting while we wait for them to finish the checkout link
       // (attendee details + payment) and for the Paystack webhook to land.
       return {
-  reply: null,
- cta:
-  context.checkoutLink && context.ticketOrderExpiresAt
-    ? getEventCheckoutCta(
-        context.checkoutLink,
-        !!context.eventIsPaid,
-        context.ticketOrderExpiresAt
-      )
-    : undefined,
-};
+        reply: null,
+        cta:
+          context.checkoutLink && context.ticketOrderExpiresAt
+            ? getEventCheckoutCta(
+              context.checkoutLink,
+              !!context.eventIsPaid,
+              context.ticketOrderExpiresAt
+            )
+            : undefined,
+      };
 
     case 'HOTEL_SEARCH':
       return apply(phone, await hotelFlow.handleCityInput(trimmed));
@@ -287,20 +298,20 @@ case 'SUPPORT_ATTACHMENT_UPLOAD': {
     case 'HOTEL_ORDER_PENDING':
       console.log(context.hotelOrderExpiresAt)
       return {
-  reply: null,
-  cta: context.paymentLink
-    ? {
-        bodyText:
-          "Your hotel booking is waiting to be completed.\n\nTap the button below to review your booking and complete payment. Reply HELP if you're having trouble, or PAUSE to set this booking aside.",
-        footerText: getExpiryFooter(context.hotelOrderExpiresAt!),
-        buttonText: "Review & Pay",
-        url: context.paymentLink,
-      }
-    : undefined,
-};
+        reply: null,
+        cta: context.paymentLink
+          ? {
+            bodyText:
+              "Your hotel booking is waiting to be completed.\n\nTap the button below to review your booking and complete payment. Reply HELP if you're having trouble, or PAUSE to set this booking aside.",
+            footerText: getExpiryFooter(context.hotelOrderExpiresAt!),
+            buttonText: "Review & Pay",
+            url: context.paymentLink,
+          }
+          : undefined,
+      };
 
-case 'HOTEL_CONFIRM_ACTION':
-  return await handleHotelConfirmation(phone, trimmed, context);
+    case 'HOTEL_CONFIRM_ACTION':
+      return await handleHotelConfirmation(phone, trimmed, context);
 
     // A post-purchase upsell nudge sent by the hotel_upsell queue job
     case 'HOTEL_UPSELL_OFFER':
@@ -332,7 +343,7 @@ case 'HOTEL_CONFIRM_ACTION':
 
     case 'HELP':
       await setState(phone, 'MAIN_MENU', {});
-      return { reply: HELP_MESSAGE() };
+      return apply(phone, supportFlow.startSupport());
 
     default:
       await setState(phone, 'MAIN_MENU', {});
@@ -376,12 +387,12 @@ async function handlePausedChoice(
       await setState(phone, 'MAIN_MENU', {});
       return { reply: mainMenu.showMainMenu(false) };
     }
-   return {
-  reply: resumed.lastPrompt
-    ? `Picking up where you left off.\n\n${resumed.lastPrompt}`
-    : null,
-  cta: resumed.lastCta,
-};
+    return {
+      reply: resumed.lastPrompt
+        ? `Picking up where you left off.\n\n${resumed.lastPrompt}`
+        : null,
+      cta: resumed.lastCta,
+    };
   }
 
   if (choice === '2' || choice === 'new' || choice === 'start new') {
@@ -404,12 +415,12 @@ async function apply(phone: string, result: FlowResult): Promise<BotReply> {
   if (!result) return { reply: FALLBACK() };
   if (result.nextState) {
     await setState(
-  phone,
-  result.nextState,
-  result.contextPatch || {},
-  result.reply ?? undefined,
-  result.cta
-);
+      phone,
+      result.nextState,
+      result.contextPatch || {},
+      result.reply ?? undefined,
+      result.cta
+    );
   }
   return { reply: result.reply ?? null, followUp: result.followUp, cta: result.cta };
 }
@@ -419,22 +430,22 @@ async function apply(phone: string, result: FlowResult): Promise<BotReply> {
 // Returns null (falls through to the normal buyer flow) unless the sender
 // is a recognized hotel WhatsApp number sending one of these commands.
 async function tryHandleHotelReply(phone: string, trimmed: string): Promise<BotReply | null> {
- const upper = trimmed.toUpperCase();
+  const upper = trimmed.toUpperCase();
   if (!upper.startsWith('CONFIRM ') && !upper.startsWith('DECLINE ')) {
     return null;
   }
 
   const hotel = await db.findHotelByWhatsappNumber(phone);
 
-console.log({
-  phone,
-  hotel,
-});
+  console.log({
+    phone,
+    hotel,
+  });
 
-if (!hotel) {
-  console.log("Hotel not found");
-  return null;
-}
+  if (!hotel) {
+    console.log("Hotel not found");
+    return null;
+  }
 
   // Prevent starting a new confirmation while another is pending.
   const session = await getSession(phone);
@@ -470,17 +481,17 @@ if (!hotel) {
   }
 
   await setState(phone, 'HOTEL_CONFIRM_ACTION', {
-  hotelAction: {
-    action: action.toUpperCase() as 'CONFIRM' | 'DECLINE',
-    reference: reference.toUpperCase(),
-  },
-});
+    hotelAction: {
+      action: action.toUpperCase() as 'CONFIRM' | 'DECLINE',
+      reference: reference.toUpperCase(),
+    },
+  });
 
-return {
-  reply:
-    `You're about to ${action.toUpperCase()} booking ${reference.toUpperCase()}.\n\n` +
-    `Reply YES to continue or NO to cancel.`,
-};
+  return {
+    reply:
+      `You're about to ${action.toUpperCase()} booking ${reference.toUpperCase()}.\n\n` +
+      `Reply YES to continue or NO to cancel.`,
+  };
 }
 
 

@@ -75,30 +75,30 @@ export async function handleSupportMessage(
     };
 }
 
-
 export async function handleAttachmentChoice(
   input: string,
+  phone: string,
+  waName: string | null | undefined,
+  context: ConversationContext,
 ): Promise<FlowResult> {
   const choice = input.trim().toLowerCase();
 
   if (choice === '1' || choice === 'yes') {
-  return {
-    nextState: 'SUPPORT_ATTACHMENT_UPLOAD',
-    reply:
-      `Please send your screenshots or photos one at a time.\n\n` +
-      `You can attach up to 5 images.\n\n` +
-      `When you're finished, reply DONE to submit your support request.`,
-  };
-}
+    return {
+      nextState: 'SUPPORT_ATTACHMENT_UPLOAD',
+      reply:
+        `Please send your screenshots or photos one at a time.\n\n` +
+        `You can attach up to 5 images.\n\n` +
+        `When you're finished, reply DONE to submit your support request.`,
+    };
+  }
 
   if (choice === '2' || choice === 'no') {
-    // We'll replace this with the email-sending logic in the next step.
-    return {
-      nextState: 'MAIN_MENU',
-      reply:
-        `Thank you! We've received your support request.\n\n` +
-        `Our support team will review it and get back to you as soon as possible.`,
-    };
+    return submitSupportRequest(
+      phone,
+      waName,
+      context,
+    );
   }
 
   return {
