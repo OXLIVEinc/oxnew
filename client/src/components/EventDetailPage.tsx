@@ -76,7 +76,7 @@ const overlayCombinations = [
 export const EventDetailPage: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const geo = useGeoLocation();
+  // const geo = useGeoLocation();
   const [isRegistered, setIsRegistered] = useState(false);
   const [event, setEvent] = useState<Event | null>(null);
   const [ticketTiers, setTicketTiers] = useState<TicketTier[]>([]);
