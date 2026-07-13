@@ -1,10 +1,9 @@
 import { Router } from 'express';
-import { getClaim, confirmClaim, declineClaim } from '../controllers/transfer.controller';
+import { getCheckout, submitCheckout } from '../controllers/ticket.controller';
 
 const router = Router();
 
-router.get('/claim/:code', getClaim);
-router.post('/claim/:code/confirm', confirmClaim);
-router.post('/claim/:code/decline', declineClaim);
+router.get('/:orderId', getCheckout);
+router.post('/:orderId/submit', submitCheckout);
 
 export default router;

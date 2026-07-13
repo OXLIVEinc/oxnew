@@ -25,6 +25,8 @@ export default function CheckoutPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [expired, setExpired] = useState(false);
 
+  console.log(import.meta.env.VITE_API_URL)
+
   useEffect(() => {
     if (!orderId) return;
     fetchCheckout(orderId)

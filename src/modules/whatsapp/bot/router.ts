@@ -8,6 +8,7 @@ import * as eventFlow from './flows/eventFlow';
 import * as hotelFlow from './flows/hotelFlow';
 import * as transferFlow from './flows/transferFlow';
 import * as ordersFlow from './flows/ordersFlow';
+import * as hotelPartnersFlow from './flows/hotelPartnerFlow';
 
 import  { resetSession } from './session';
 
@@ -37,8 +38,11 @@ export async function handleMessage(phone: string, text: string, waName?: string
   // request — handled independently of the buyer session state machine,
   // since the hotel is a different party in the conversation.
   // -------------------------------------------------------------------
-  const hotelReply = await tryHandleHotelReply(phone, trimmed);
-  if (hotelReply) return hotelReply;
+  const hotelPartner = await db.findHotelByWhatsappNumber(phone);
+
+if (hotelPartner) {
+  return hotelPartnersFlow.handleMessage(phone, trimmed, hotelPartner,waName as string);
+}
 
   // -------------------------------------------------------------------
   // 0b. "CANCEL <reference>" manually cancels a pending order/booking/

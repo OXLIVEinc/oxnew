@@ -2,6 +2,8 @@
 // Conversation state machine
 // ---------------------------------------------------------------------------
 
+import { findHotelOrderByReference } from "./data/db";
+
 export type ConversationState =
   | 'FRESH'
   | 'MAIN_MENU'
@@ -25,7 +27,9 @@ export type ConversationState =
   | 'TRANSFER_CONFIRM'
   | 'CHECK_BOOKINGS'
   | 'PAUSED_CHOICE'
-  | 'HELP';
+  | 'HELP'
+  | "HOTEL_HOME"
+  | "HOTEL_CONFIRM_ACTION";
 
 export interface EventSearchResultItem {
   id: string;
@@ -133,6 +137,7 @@ export interface ConversationContext {
     action: 'CONFIRM' | 'DECLINE';
     reference: string;
   };
+  
 
   // Stashed here while we ask "resume paused booking, or start this new
   // one?" (PAUSED_CHOICE state) — whichever the buyer picks, we either
@@ -200,3 +205,8 @@ export interface BotReply {
 }
 
 export type PaymentKind = 'event' | 'hotel';
+
+
+export type HotelOrderWithDetails = NonNullable<
+  Awaited<ReturnType<typeof findHotelOrderByReference>>
+>;

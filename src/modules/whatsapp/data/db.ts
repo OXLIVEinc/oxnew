@@ -7,6 +7,9 @@ import { nextOrderReference, nextHotelReference, nextTransferCode } from "../lib
 import { createTicketQr } from "../lib/qr/create-ticket-qr";
 import { distanceKm } from "../lib/geocode";
 import { sendMessage, sendImageMessage } from "../bot/messenger";
+import { HotelOrderWithDetails } from "../../../../shared/schema";
+import { getTableColumns } from "drizzle-orm";
+
 
 export type EventRow = schema.Event;
 export type TicketTierRow = schema.TicketTier;
@@ -62,6 +65,40 @@ export async function getOrCreateProfile(phone: string, waName?: string | null):
     .values({ phone, displayName: waName || null })
     .returning();
   return created;
+}
+
+
+
+export async function findPendingHotelOrders(hotelId: string) {
+  return db
+    .select({
+      id: schema.hotelOrders.id,
+      reference: schema.hotelOrders.reference,
+      checkIn: schema.hotelOrders.checkIn,
+      checkOut: schema.hotelOrders.checkOut,
+      guests: schema.hotelOrders.guests,
+      amount: schema.hotelOrders.amount,
+      currency: schema.hotelOrders.currency,
+      roomType: schema.hotelRoomTypes.name,
+      guestName: schema.profiles.displayName,
+      guestPhone: schema.profiles.phone,
+    })
+    .from(schema.hotelOrders)
+    .innerJoin(
+      schema.hotelRoomTypes,
+      eq(schema.hotelOrders.roomTypeId, schema.hotelRoomTypes.id)
+    )
+    .innerJoin(
+      schema.profiles,
+      eq(schema.hotelOrders.userId, schema.profiles.id)
+    )
+    .where(
+      and(
+        eq(schema.hotelOrders.hotelId, hotelId),
+        eq(schema.hotelOrders.status, "paid")
+      )
+    )
+    .orderBy(asc(schema.hotelOrders.paidAt));
 }
 
 
@@ -694,12 +731,32 @@ export async function getHotelOrderSummary(orderId: string): Promise<HotelOrderS
   return { order, hotelName: hotel?.name ?? "Hotel", hotelAddress: hotel?.address ?? "" };
 }
 
-export async function findHotelOrderByReference(reference: string): Promise<HotelOrderRow | null> {
+
+export async function findHotelOrderByReference(
+  reference: string
+): Promise<HotelOrderWithDetails | null> {
   const rows = await db
-    .select()
+    .select({
+      ...getTableColumns(schema.hotelOrders),
+
+      guestName: schema.profiles.displayName,
+      guestPhone: schema.profiles.phone,
+      guestEmail: schema.profiles.email,
+
+      hotelName: schema.hotelPartners.name,
+    })
     .from(schema.hotelOrders)
+    .leftJoin(
+      schema.profiles,
+      eq(schema.hotelOrders.userId, schema.profiles.id)
+    )
+    .leftJoin(
+      schema.hotelPartners,
+      eq(schema.hotelOrders.hotelId, schema.hotelPartners.id)
+    )
     .where(eq(schema.hotelOrders.reference, reference))
     .limit(1);
+
   return rows[0] ?? null;
 }
 
@@ -1180,3 +1237,5 @@ function paginate<T>(rows: T[], limit: number, offset: number): Page<T> {
     nextOffset: offset + limit,
   };
 }
+
+

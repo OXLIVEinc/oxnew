@@ -102,6 +102,8 @@ export async function hasPausedSession(phone: string): Promise<boolean> {
   return !!session?.paused;
 }
 
+
+
 /** Discard a paused flow without restoring it (buyer chose to start something new instead). */
 export async function clearPaused(phone: string): Promise<Session> {
   const session = await getSession(phone);

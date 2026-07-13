@@ -1124,6 +1124,9 @@ export type NewHotelOrder = typeof hotelOrders.$inferInsert;
 
 
 
-
-
-
+export type HotelOrderWithDetails = HotelOrder & {
+  guestName: string | null;
+  guestPhone: string | null;
+  guestEmail: string | null;
+  hotelName: string | null;
+};

@@ -1,5 +1,7 @@
 export { formatDate, formatEventDate, formatEventTimeRange, formatEventDateTime } from '../lib/datetime';
-import { CtaUrlPayload } from '../types';
+import { HotelPartnerRow } from '../data/db';
+import { CtaUrlPayload,HotelOrderWithDetails } from '../types';
+import { formatDate } from '../lib/datetime';
 
 export function naira(amount: number): string {
   return '₦' + amount.toLocaleString('en-NG');
@@ -116,4 +118,57 @@ export function getEventCheckoutStartCta(
 
     url: checkoutLink,
   };
+}
+
+export function buildHotelMenu(hotel: HotelPartnerRow, waName?: string): string {
+  const greeting = waName ? `Hi ${waName}! 👋\n\n` : "Hello! 👋\n\n";
+
+  return (
+    `${greeting}` +
+    `Welcome to the OX Hotel Partner Portal.\n\n` +
+    `${hotel.name}\n\n` +
+    `Reply with:\n\n` +
+    `1. View pending bookings\n\n` +
+    `You can also send:\n\n` +
+    `VIEW <booking-reference>\n` +
+    `CONFIRM <booking-reference>\n` +
+    `DECLINE <booking-reference>\n\n` +
+    `Example:\n` +
+    `CONFIRM OX-HTL-ABC123`
+  );
+}
+
+
+export function buildBookingSummary(order: HotelOrderWithDetails): string {
+  return `Booking Details
+
+Reference:
+${order.reference}
+
+Guest:
+${order.guestName}
+
+Phone:
+${order.phone ?? "-"}
+
+Room:
+${order.roomTypeName}
+
+Guests:
+${order.guests}
+
+Check-in:
+${formatDate(order.checkIn)}
+
+Check-out:
+${formatDate(order.checkOut)}
+
+Nights:
+${order.nights}
+
+Amount:
+₦${Number(order.amount).toLocaleString()}
+
+Status:
+${order.status.toUpperCase()}`;
 }
