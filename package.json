@@ -8,6 +8,7 @@
     "start": "node dist/src/server.js",
     "dev": "tsx watch src/server.ts",
     "worker": "tsx watch src/modules/whatsapp/workers/index.ts",
+    "worker:prod": "node dist/src/modules/whatsapp/workers/index.js",
     "simulate": "tsx src/modules/whatsapp/test/simulate.ts",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
