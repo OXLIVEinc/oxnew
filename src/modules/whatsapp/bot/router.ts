@@ -1,7 +1,7 @@
 import { getSession, setState, pauseSession, resumeSession, clearPaused, hasPausedSession } from './session';
 import { isDeepLinkCode, isGlobalCommand, isMoreCommand, parseCancelOrderCommand, HELP_MESSAGE, FALLBACK, getEventCheckoutCta, getExpiryFooter } from './helpers';
 import * as db from '../data/db';
-import { BotReply, ConversationContext, FlowResult } from '../types';
+import { BotReply, ConversationContext, FlowResult, IncomingMedia } from '../types';
 
 import * as mainMenu from './flows/mainMenu';
 import * as eventFlow from './flows/eventFlow';
@@ -30,7 +30,7 @@ const PAUSED_CHOICE_PROMPT =
  * @returns what to send back. `followUp` (if present) should be sent as a
  *          second message.
  */
-export async function handleMessage(phone: string, text: string, waName?: string | null): Promise<BotReply> {
+export async function handleMessage(phone: string, text: string, waName?: string | null,media?:IncomingMedia): Promise<BotReply> {
   const trimmed = (text || '').trim();
   console.log(trimmed)
 
@@ -187,6 +187,52 @@ if (hotelPartner) {
       return apply(phone, result);
     }
 
+    case 'SUPPORT_CATEGORY':
+  return apply(
+    phone,
+    await supportFlow.handleCategorySelection(trimmed)
+  );
+
+  case 'SUPPORT_MESSAGE':
+  return apply(
+    phone,
+    await supportFlow.handleSupportMessage(trimmed)
+  );
+
+case 'SUPPORT_ATTACHMENT_UPLOAD': {
+  // User has finished attaching images
+  if (trimmed.toUpperCase() === 'DONE') {
+    return apply(
+      phone,
+      await supportFlow.submitSupportRequest(
+        phone,
+        waName,
+        context,
+      )
+    );
+  }
+
+  // User sent an image
+  if (media) {
+    return apply(
+      phone,
+      await supportFlow.handleAttachmentUpload(context, {
+  id: media.id,
+  filename: media.filename,
+  mimeType: media.mimeType,
+}))
+
+  }
+  
+
+  // User sent something else
+  return {
+    reply:
+      `Please send an image, or reply DONE when you've finished attaching screenshots.`,
+  };
+}
+  
+  
     // "My bookings" first asks whether they want tickets, hotel bookings, or both
     case 'BOOKING_KIND_SELECT': {
       const result = mainMenu.handleBookingKindInput(trimmed);

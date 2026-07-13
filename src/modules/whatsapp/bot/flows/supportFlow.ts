@@ -1,4 +1,5 @@
-import { FlowResult, ConversationContext } from '../../types';
+import { FlowResult,ConversationContext } from '../../types';
+import { sendSupportEmail } from '../../services/supportEmail';
 
 const SUPPORT_CATEGORIES = {
   '1': 'Event Tickets',
@@ -44,17 +45,138 @@ export async function handleCategorySelection(
   }
 
   return {
-    nextState: 'SUPPORT_MESSAGE',
+    nextState: "SUPPORT_MESSAGE",
     contextPatch: {
-      supportCategory: category,
+        supportCategory: category,
     },
     reply:
-      `Please describe your issue in as much detail as possible.\n\n` +
-      `Helpful information includes:\n` +
-      `• Booking or order reference\n` +
-      `• Event or hotel name\n` +
-      `• What happened\n` +
-      `• What you expected\n\n` +
-      `Once you send your message, it will be forwarded to our support team.`,
+        `Please describe your issue in as much detail as possible.\n\n` +
+        `Helpful information includes:\n` +
+        `• Booking or order reference\n` +
+        `• Event or hotel name\n` +
+        `• What happened\n` +
+        `• What you expected`,
+};
+}
+
+
+export async function handleSupportMessage(
+    message: string,
+): Promise<FlowResult> {
+    return {
+        nextState: "SUPPORT_ATTACHMENTS",
+        contextPatch: {
+            supportMessage: message,
+        },
+        reply:
+            `Would you like to attach any screenshots or photos to help explain the issue?\n\n` +
+            `1. Yes\n` +
+            `2. No`,
+    };
+}
+
+
+export async function handleAttachmentChoice(
+  input: string,
+): Promise<FlowResult> {
+  const choice = input.trim().toLowerCase();
+
+  if (choice === '1' || choice === 'yes') {
+  return {
+    nextState: 'SUPPORT_ATTACHMENT_UPLOAD',
+    reply:
+      `Please send your screenshots or photos one at a time.\n\n` +
+      `You can attach up to 5 images.\n\n` +
+      `When you're finished, reply DONE to submit your support request.`,
   };
+}
+
+  if (choice === '2' || choice === 'no') {
+    // We'll replace this with the email-sending logic in the next step.
+    return {
+      nextState: 'MAIN_MENU',
+      reply:
+        `Thank you! We've received your support request.\n\n` +
+        `Our support team will review it and get back to you as soon as possible.`,
+    };
+  }
+
+  return {
+    reply:
+      `Please reply with one of the following:\n\n` +
+      `1. Yes\n` +
+      `2. No`,
+  };
+}
+
+
+
+export async function handleAttachmentUpload(
+  context: ConversationContext,
+  image: {
+    id: string;
+    filename: string;
+    mimeType: string;
+  },
+): Promise<FlowResult> {
+  const images = [...(context.supportImages ?? [])];
+
+  if (images.length >= 5) {
+    return {
+      reply:
+        `You've already attached the maximum of 5 images.\n\n` +
+        `Reply DONE to submit your support request.`,
+    };
+  }
+
+  images.push(image);
+
+  return {
+    nextState: 'SUPPORT_ATTACHMENT_UPLOAD',
+    contextPatch: {
+      supportImages: images,
+    },
+    reply:
+      `✅ Screenshot received (${images.length}/5).\n\n` +
+      `Send another image or reply DONE when you're finished.`,
+  };
+}
+
+
+
+export async function submitSupportRequest(
+  phone: string,
+  waName: string | null | undefined,
+  context: ConversationContext,
+): Promise<FlowResult> {
+  try {
+    await sendSupportEmail({
+      name: waName,
+      phone,
+      category: context.supportCategory ?? 'General',
+      message: context.supportMessage ?? '',
+      images: context.supportImages ?? [],
+    });
+
+    return {
+      nextState: 'MAIN_MENU',
+      contextPatch: {
+        supportCategory: undefined,
+        supportMessage: undefined,
+        supportImages: undefined,
+      },
+      reply:
+        `Thank you! Your support request has been sent successfully.\n\n` +
+        `Our support team will get back to you as soon as possible.`,
+    };
+  } catch (error) {
+    console.error(error);
+
+    return {
+      nextState: 'SUPPORT_ATTACHMENT_UPLOAD',
+      reply:
+        `Sorry, we couldn't submit your support request.\n\n` +
+        `Reply DONE to try again.`,
+    };
+  }
 }

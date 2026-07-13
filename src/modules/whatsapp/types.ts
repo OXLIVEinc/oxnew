@@ -31,7 +31,9 @@ export type ConversationState =
   | "HOTEL_HOME"
   | "HOTEL_CONFIRM_ACTION"
   | 'SUPPORT_CATEGORY'
-  | 'SUPPORT_MESSAGE';
+| 'SUPPORT_MESSAGE'
+| 'SUPPORT_ATTACHMENTS'
+| 'SUPPORT_ATTACHMENT_UPLOAD'
 
 export interface EventSearchResultItem {
   id: string;
@@ -150,8 +152,11 @@ export interface ConversationContext {
     reply?: string | null;
   };
 
-   supportCategory?: string;
+  supportCategory?: string;
 
+supportMessage?: string;
+
+supportImages?: SupportImage[];
 
 ticketOrderExpiresAt?: string;
 hotelOrderExpiresAt?: string;
@@ -214,3 +219,23 @@ export type PaymentKind = 'event' | 'hotel';
 export type HotelOrderWithDetails = NonNullable<
   Awaited<ReturnType<typeof findHotelOrderByReference>>
 >;
+
+export interface IncomingMedia {
+  id: string;
+  mimeType: string;
+  filename: string;
+}
+
+export interface SupportImage {
+  id: string;
+  filename: string;
+  mimeType: string;
+}
+
+export interface SupportEmailInput {
+  name?: string | null;
+  phone: string;
+  category: string;
+  message: string;
+  images: SupportImage[];
+}

@@ -3,6 +3,7 @@
     "target": "ES2020",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+     "jsx": "react-jsx",
 
     "lib": ["ES2020"],
 
@@ -25,7 +26,7 @@
   "include": [
     "src/**/*.ts",
     "shared/**/*.ts"
-  ],
+, "src/modules/whatsapp/emails/supportRequestEmail.tsx", "src/modules/whatsapp/services/supportEmail.ts"  ],
   "exclude": [
     "node_modules",
     "dist"

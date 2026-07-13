@@ -4,6 +4,7 @@ import { completeTicketOrderPayment, completeHotelOrderPayment } from '../bot/pa
 import { markAsReadAndShowTyping } from '../lib/whatsapp';
 import { sendMessage, sendCtaUrlMessage } from '../bot/messenger';
 import { normalizeIncomingPhone } from '@/utils/helpers';
+import { IncomingMedia } from '../types';
 
 
 export const whatsappWebhook = {
@@ -38,6 +39,15 @@ export const whatsappWebhook = {
 
             // Default to a normal text message.
             let text = message.text?.body ?? "";
+            let media: IncomingMedia | undefined;
+
+         if (message.type === 'image' && message.image) {
+  media = {
+    id: message.image.id,
+    mimeType: message.image.mime_type,
+    filename: `support-${message.image.id}.jpg`,
+  };
+}
 
             // Handle reply button presses.
             const buttonId = message.interactive?.button_reply?.id;
@@ -51,11 +61,19 @@ export const whatsappWebhook = {
             const waName =
               contacts.find((c: any) => normalizeIncomingPhone(c.wa_id) === phone)?.profile?.name;
 
-            if (!phone || !text || !messageId) continue;
+            if (!phone || !messageId || (!text && !media)) {
+  continue;
+}
 
             await markAsReadAndShowTyping(messageId);
 
-            const { reply, followUp, cta } = await handleMessage(phone, text, waName);
+            const { reply, followUp, cta } =
+    await handleMessage(
+        phone,
+        text,
+        waName,
+        media,
+    );
 
             if (reply) await sendMessage(phone, reply); // You'll need to import sendMessage if used directly
             if (cta) await sendCtaUrlMessage(phone, cta);
