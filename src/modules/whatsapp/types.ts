@@ -29,7 +29,9 @@ export type ConversationState =
   | 'PAUSED_CHOICE'
   | 'HELP'
   | "HOTEL_HOME"
-  | "HOTEL_CONFIRM_ACTION";
+  | "HOTEL_CONFIRM_ACTION"
+  | 'SUPPORT_CATEGORY'
+  | 'SUPPORT_MESSAGE';
 
 export interface EventSearchResultItem {
   id: string;
@@ -147,6 +149,8 @@ export interface ConversationContext {
     contextPatch?: Partial<ConversationContext>;
     reply?: string | null;
   };
+
+   supportCategory?: string;
 
 
 ticketOrderExpiresAt?: string;

@@ -9,6 +9,7 @@ import * as hotelFlow from './flows/hotelFlow';
 import * as transferFlow from './flows/transferFlow';
 import * as ordersFlow from './flows/ordersFlow';
 import * as hotelPartnersFlow from './flows/hotelPartnerFlow';
+import * as supportFlow from './flows/supportFlow';
 
 import  { resetSession } from './session';
 
@@ -69,9 +70,8 @@ if (hotelPartner) {
     const cmd = trimmed.toLowerCase();
 
     if (cmd === 'help') {
-      // don't overwrite state — remember where they were, HELP is just a detour
-      return { reply: HELP_MESSAGE() };
-    }
+  return apply(phone, supportFlow.startSupport());
+}
 
     if (cmd === 'pending') {
       const result = await ordersFlow.showPending(phone);
