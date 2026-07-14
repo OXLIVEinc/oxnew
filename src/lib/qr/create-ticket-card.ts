@@ -1,6 +1,7 @@
 import sharp, { OverlayOptions } from "sharp";
 import axios from "axios";
 import { formatEventDate } from "@/utils/helpers";
+import { interFont } from "@/assets/fonts/inter";
 
 interface TicketCardOptions {
   eventName: string;
@@ -60,31 +61,39 @@ export async function createTicketCard({
     <svg width="${CARD_WIDTH}" height="${CARD_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <style>
-          .title {
-            font-family: Arial, sans-serif;
-            font-size: 42px;
-            font-weight: 700;
-            fill: ${COLORS.textPrimary};
-          }
-          .subtitle {
-            font-family: Arial, sans-serif;
-            font-size: 24px;
-            fill: ${COLORS.textSecondary};
-          }
-          .label {
-            font-family: Arial, sans-serif;
-            font-size: 18px;
-            font-weight: 500;
-            letter-spacing: 1.5px;
-            fill: ${COLORS.textMuted};
-          }
-          .value {
-            font-family: Arial, sans-serif;
-            font-size: 28px;
-            font-weight: 600;
-            fill: ${COLORS.textPrimary};
-          }
-        </style>
+@font-face {
+  font-family: "Inter";
+  src: url("data:font/ttf;base64,${interFont}") format("truetype");
+}
+
+.title {
+  font-family: "Inter";
+  font-size: 42px;
+  font-weight: 700;
+  fill: ${COLORS.textPrimary};
+}
+
+.subtitle {
+  font-family: "Inter";
+  font-size: 24px;
+  fill: ${COLORS.textSecondary};
+}
+
+.label {
+  font-family: "Inter";
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: 1.5px;
+  fill: ${COLORS.textMuted};
+}
+
+.value {
+  font-family: "Inter";
+  font-size: 28px;
+  font-weight: 600;
+  fill: ${COLORS.textPrimary};
+}
+</style>
       </defs>
 
       <!-- Main card background -->
