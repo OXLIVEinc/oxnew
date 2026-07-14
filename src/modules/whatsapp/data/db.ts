@@ -808,6 +808,62 @@ export async function markHotelOrderPaid(orderId: string): Promise<HotelOrderRow
   return updated;
 }
 
+
+export async function getPendingRefunds(limit = 20) {
+  return db.query.hotelOrders.findMany({
+    where: and(
+      eq(schema.hotelOrders.refundStatus, "pending"),
+      eq(schema.hotelOrders.status, "paid"),
+    ),
+    limit,
+    with: {
+      hotel: true,
+    },
+  });
+}
+
+export async function markRefundProcessing(orderId: string) {
+  await db
+    .update(schema.hotelOrders)
+    .set({
+      refundStatus: "processing",
+      updatedAt: new Date(),
+    })
+    .where(eq(schema.hotelOrders.id, orderId));
+}
+
+export async function markRefundCompleted(
+  orderId: string,
+  reference: string
+) {
+  await db
+    .update(schema.hotelOrders)
+    .set({
+      status: "refunded",
+      refundStatus: "completed",
+      refundedAt: new Date(),
+      refundReference: reference,
+      updatedAt: new Date(),
+    })
+    .where(eq(schema.hotelOrders.id, orderId));
+}
+
+
+export async function markRefundFailed(
+  orderId: string,
+  reason: string
+) {
+  await db
+    .update(schema.hotelOrders)
+    .set({
+      refundStatus: "failed",
+      refundFailureReason: reason,
+      refundAttempts: sql`${schema.hotelOrders.refundAttempts} + 1`,
+      updatedAt: new Date(),
+    })
+    .where(eq(schema.hotelOrders.id, orderId));
+}
+
 /** Hotel accepted a paid booking request. */
 export async function confirmHotelOrder(orderId: string): Promise<HotelOrderRow> {
   const [updated] = await db
@@ -1239,3 +1295,27 @@ function paginate<T>(rows: T[], limit: number, offset: number): Page<T> {
 }
 
 
+export async function declineHotelOrderAndQueueRefund(
+  orderId: string,
+  reason: string,
+): Promise<HotelOrderRow> {
+  return db.transaction(async (tx) => {
+    const [order] = await tx
+      .update(schema.hotelOrders)
+      .set({
+        status: "declined",
+        declinedAt: new Date(),
+        refundStatus: "pending",
+        refundReason: reason,
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.hotelOrders.id, orderId))
+      .returning();
+
+    if (!order) {
+      throw new Error("Hotel order not found.");
+    }
+
+    return order;
+  });
+}

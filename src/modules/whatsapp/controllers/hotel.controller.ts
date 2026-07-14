@@ -19,7 +19,7 @@ export const payHotelOrder = async (req: Request, res: Response) => {
 
     // Free booking
     if (Number(order.amount) === 0) {
-      await completeHotelOrderPayment(order.reference, 0); // You'll need to import this
+      await completeHotelOrderPayment(order.reference, 0); 
       const updated = await db.getHotelOrderById(order.id);
       return res.json({ ok: true, free: true, status: updated?.status });
     }

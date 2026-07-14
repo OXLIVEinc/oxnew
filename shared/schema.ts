@@ -19,6 +19,7 @@ export const appRole = pgEnum("app_role", [
   'hotel_partner'
 ]);
 
+
 // ==================== ENUMS ====================
 
 export const ticketStatusEnum = pgEnum("ticket_status", [
@@ -38,13 +39,12 @@ export const ticketOrderStatusEnum = pgEnum("ticket_order_status", [
 export const hotelOrderStatusEnum = pgEnum("hotel_order_status", [
   "pending",
   "awaiting_payment",
-  // Buyer has paid — booking is now awaiting the hotel's confirmation
-  // (they have a 30-minute window to respond before it auto-expires).
   "paid",
   "confirmed",
   "declined",
   "cancelled",
   "expired",
+  "refunded",
   "completed",
 ]);
 
@@ -67,6 +67,14 @@ export const hotelApprovalStatusEnum = pgEnum("hotel_approval_status", [
   "pending",
   "approved",
   "rejected",
+]);
+
+export const refundStatusEnum = pgEnum("refund_status", [
+  "none",        // No refund required
+  "pending",     // Waiting for worker
+  "processing",  // Worker is calling Paystack
+  "completed",   // Successfully refunded
+  "failed",      // Last attempt failed
 ]);
 
 // ==================== TABLES ====================
@@ -438,18 +446,35 @@ export const hotelOrders = pgTable("hotel_orders", {
   completedAt: timestamp("completed_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-//   refundedAt: timestamp("refunded_at", {
-//   withTimezone: true,
-// }),
+  // Refund lifecycle
+refundStatus: refundStatusEnum("refund_status")
+  .notNull()
+  .default("none"),
 
-// refundReference: text("refund_reference"),
+// When the refund was successfully completed
+refundedAt: timestamp("refunded_at", {
+  withTimezone: true,
+}),
 
-// refundAmount: numeric("refund_amount", {
-//   precision: 10,
-//   scale: 2,
-// }),
+// Amount refunded (allows partial refunds in the future)
+refundAmount: numeric("refund_amount", {
+  precision: 10,
+  scale: 2,
+}),
 
-// refundReason: text("refund_reason"),
+// Gateway refund/reference ID
+refundReference: text("refund_reference"),
+
+// Why the refund happened
+refundReason: text("refund_reason"),
+
+// Last error returned by the payment gateway
+refundFailureReason: text("refund_failure_reason"),
+
+// Number of retry attempts
+refundAttempts: integer("refund_attempts")
+  .notNull()
+  .default(0),
 }, (t) => [uniqueIndex("hotel_orders_reference_key").on(t.reference)]);
 
 // Transfer requires the RECIPIENT to confirm via a link + checkout-style form
@@ -1085,6 +1110,7 @@ export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({
   id: true,
   createdAt: true,
 });
+
 
 
 

@@ -32,13 +32,7 @@ const PAUSED_CHOICE_PROMPT =
  */
 export async function handleMessage(phone: string, text: string, waName?: string | null, media?: IncomingMedia): Promise<BotReply> {
   const trimmed = (text || '').trim();
-  console.log(trimmed)
 
-  // -------------------------------------------------------------------
-  // 0. A hotel partner replying CONFIRM/DECLINE <ref> to a paid booking
-  // request — handled independently of the buyer session state machine,
-  // since the hotel is a different party in the conversation.
-  // -------------------------------------------------------------------
   const hotelPartner = await db.findHotelByWhatsappNumber(phone);
 
   if (hotelPartner) {
@@ -50,6 +44,7 @@ export async function handleMessage(phone: string, text: string, waName?: string
   // transfer from ANY state, without disturbing whatever flow the buyer
   // is currently in (unlike PAUSE, which stops the current flow).
   // -------------------------------------------------------------------
+
   const cancelRef = parseCancelOrderCommand(trimmed);
   if (cancelRef) {
     const result = await ordersFlow.cancelPendingItem(phone, cancelRef);
@@ -57,11 +52,6 @@ export async function handleMessage(phone: string, text: string, waName?: string
   }
 
   const session = await getSession(phone);
-
-  console.log({
-    state: session.state,
-    text: trimmed,
-  });
 
   // -------------------------------------------------------------------
   // 1. Global commands work from any state
@@ -200,15 +190,15 @@ export async function handleMessage(phone: string, text: string, waName?: string
       );
 
     case 'SUPPORT_ATTACHMENTS':
-  return apply(
-    phone,
-    await supportFlow.handleAttachmentChoice(
-      trimmed,
-      phone,
-      waName,
-      context,
-    )
-  );
+      return apply(
+        phone,
+        await supportFlow.handleAttachmentChoice(
+          trimmed,
+          phone,
+          waName,
+          context,
+        )
+      );
 
     case 'SUPPORT_ATTACHMENT_UPLOAD': {
       // User has finished attaching images
@@ -425,75 +415,6 @@ async function apply(phone: string, result: FlowResult): Promise<BotReply> {
   return { reply: result.reply ?? null, followUp: result.followUp, cta: result.cta };
 }
 
-// A hotel accepts/declines a paid booking by replying "CONFIRM <ref>" or
-// "DECLINE <ref>" from the number registered on their `hotelPartners` row.
-// Returns null (falls through to the normal buyer flow) unless the sender
-// is a recognized hotel WhatsApp number sending one of these commands.
-async function tryHandleHotelReply(phone: string, trimmed: string): Promise<BotReply | null> {
-  const upper = trimmed.toUpperCase();
-  if (!upper.startsWith('CONFIRM ') && !upper.startsWith('DECLINE ')) {
-    return null;
-  }
-
-  const hotel = await db.findHotelByWhatsappNumber(phone);
-
-  console.log({
-    phone,
-    hotel,
-  });
-
-  if (!hotel) {
-    console.log("Hotel not found");
-    return null;
-  }
-
-  // Prevent starting a new confirmation while another is pending.
-  const session = await getSession(phone);
-
-  if (
-    session.state === 'HOTEL_CONFIRM_ACTION' &&
-    session.context.hotelAction
-  ) {
-    const pending = session.context.hotelAction;
-
-    return {
-      reply:
-        `You're already confirming booking ${pending.reference}.\n\n` +
-        `Reply YES to ${pending.action.toLowerCase()} it, or NO to cancel that action before starting another booking.`,
-    };
-  }
-
-  const [action, reference] = trimmed.split(/\s+/);
-
-  if (!reference) {
-    return {
-      reply: `Please include the booking reference, e.g. CONFIRM OX-HTL-XXXXXX`,
-    };
-  }
-
-  const order = await db.findHotelOrderByReference(reference.toUpperCase());
-  if (!order || order.hotelId !== hotel.id) {
-    return { reply: `No booking found for reference "${reference}".` };
-  }
-
-  if (order.status !== 'paid') {
-    return { reply: `Booking ${reference} is no longer awaiting your response (status: ${order.status}).` };
-  }
-
-  await setState(phone, 'HOTEL_CONFIRM_ACTION', {
-    hotelAction: {
-      action: action.toUpperCase() as 'CONFIRM' | 'DECLINE',
-      reference: reference.toUpperCase(),
-    },
-  });
-
-  return {
-    reply:
-      `You're about to ${action.toUpperCase()} booking ${reference.toUpperCase()}.\n\n` +
-      `Reply YES to continue or NO to cancel.`,
-  };
-}
-
 
 
 
@@ -557,12 +478,17 @@ async function handleHotelConfirmation(
     };
   }
 
-  const updated = await db.declineHotelOrder(order.id);
+  const updated = await db.declineHotelOrderAndQueueRefund(
+    order.id,
+    "Hotel declined booking.",
+  );
+
   await hotelFlow.notifyGuestOfDecline(updated);
 
-  await setState(phone, 'MAIN_MENU', {});
+  await setState(phone, "MAIN_MENU", {});
 
   return {
     reply: `Booking ${reference} declined. The guest has been notified.`,
   };
+
 }
