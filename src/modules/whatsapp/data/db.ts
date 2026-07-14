@@ -786,13 +786,7 @@ export async function initiateHotelOrderPayment(orderId: string, email: string):
   return updated;
 }
 
-/**
- * Buyer's payment has cleared. The order moves to "paid" — NOT "confirmed"
- * yet — because the hotel still needs to accept or decline the booking.
- * They get a fresh 30-minute window (reusing `expiresAt`) to respond;
- * an external cron job is responsible for flagging orders that blow past
- * that window as "expired".
- */
+
 export async function markHotelOrderPaid(orderId: string): Promise<HotelOrderRow> {
   const [updated] = await db
     .update(schema.hotelOrders)
@@ -811,10 +805,7 @@ export async function markHotelOrderPaid(orderId: string): Promise<HotelOrderRow
 
 export async function getPendingRefunds(limit = 20) {
   return db.query.hotelOrders.findMany({
-    where: and(
-      eq(schema.hotelOrders.refundStatus, "pending"),
-      inArray(schema.hotelOrders.status, ["paid", "declined"]),
-    ),
+    where: eq(schema.hotelOrders.refundStatus, "pending"),
     limit,
     with: {
       hotel: true,
@@ -832,9 +823,26 @@ export async function markRefundProcessing(orderId: string) {
     .where(eq(schema.hotelOrders.id, orderId));
 }
 
+
+export async function resetStaleRefunds() {
+  await db
+    .update(schema.hotelOrders)
+    .set({
+      refundStatus: "pending",
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(schema.hotelOrders.refundStatus, "processing"),
+        sql`${schema.hotelOrders.updatedAt} < NOW() - INTERVAL '10 minutes'`
+      )
+    );
+}
+
 export async function markRefundCompleted(
   orderId: string,
-  reference: string
+  reference: string,
+  amount: string,
 ) {
   await db
     .update(schema.hotelOrders)
@@ -843,6 +851,7 @@ export async function markRefundCompleted(
       refundStatus: "completed",
       refundedAt: new Date(),
       refundReference: reference,
+      refundAmount: amount,
       updatedAt: new Date(),
     })
     .where(eq(schema.hotelOrders.id, orderId));

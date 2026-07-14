@@ -46,15 +46,16 @@ async function processRefund(
 
     await db.markRefundCompleted(
       order.id,
-      result.refundReference ?? order.reference
+      result.refundReference ?? order.reference,
+      order.amount,
     );
 
     await sendMessage(
       order.phone,
       `Your payment for booking ${order.reference} has been automatically refunded.\n\n` +
-        `Refund Reference: ${result.refundReference ?? order.reference}\n\n` +
-        `Depending on your bank, the refund may take a little time to appear in your account.\n\n` +
-        `We apologize for the inconvenience and appreciate your patience.`
+      `Refund Reference: ${result.refundReference ?? order.reference}\n\n` +
+      `Depending on your bank, the refund may take a little time to appear in your account.\n\n` +
+      `We apologize for the inconvenience and appreciate your patience.`
     );
 
     console.log(

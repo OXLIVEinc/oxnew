@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { processRefunds } from "../workers/refund";
+import * as db from "../data/db"
 
 const router = Router();
 
@@ -14,6 +15,7 @@ router.post("/process", async (req, res) => {
   }
 
   try {
+    await db.resetStaleRefunds();
     const processed = await processRefunds();
 
     return res.json({

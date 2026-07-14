@@ -1,3 +1,9 @@
+folder .github {
+  folder workflows {
+    file deploy-vercel.yml
+    file railway-deploy.yml
+  }
+}
 folder client {
   folder public {
     file favicon.svg
@@ -282,6 +288,9 @@ folder client {
   file vite.config.ts
 }
 folder public {
+  folder fonts {
+    file inter.ttf
+  }
   folder tickets {
   }
 }
@@ -398,8 +407,10 @@ folder src {
         folder flows {
           file eventFlow.ts
           file hotelFlow.ts
+          file hotelPartnerFlow.ts
           file mainMenu.ts
           file ordersFlow.ts
+          file supportFlow.ts
           file transferFlow.ts
         }
         file helpers.ts
@@ -422,6 +433,9 @@ folder src {
         file redis.ts
         file seed.ts
       }
+      folder emails {
+        file supportRequestEmail.tsx
+      }
       folder lib {
         folder qr {
           file create-ticket-card.ts
@@ -436,6 +450,7 @@ folder src {
         file geocode.ts
         file ids.ts
         file paystack.ts
+        file resend.ts
         file whatsapp.ts
       }
       folder middleware {
@@ -452,9 +467,13 @@ folder src {
       folder routes {
         file hotel.routes.ts
         file index.ts
+        file refund.ts
         file ticket.routes.ts
         file transfer.routes.ts
         file webhook.routes.ts
+      }
+      folder services {
+        file supportEmail.ts
       }
       folder test {
         file simulate.ts
@@ -465,6 +484,7 @@ folder src {
       folder workers {
         file index.ts
         file purchase.ts
+        file refund.ts
       }
       file types.ts
     }
@@ -487,7 +507,9 @@ file bun.lock
 file CHANGES.md
 file drizzle.config.ts
 file dump.rdb
+file fonts.conf
 file package.json
 file README.md
+file sip.ts
 file tsconfig.json
 file tsconfig.typecheck.json

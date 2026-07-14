@@ -14,11 +14,7 @@ export interface InitTransactionResult {
   reference: string;
 }
 
-/**
- * If PAYSTACK_SECRET_KEY isn't set, this returns a working mock payment link
- * instead of throwing, so the bot stays fully functional in dev/demo without
- * real Paystack credentials.
- */
+
 export async function initializeTransaction(
   input: InitTransactionInput
 ): Promise<InitTransactionResult> {
