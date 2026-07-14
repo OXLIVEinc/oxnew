@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gt, ilike, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, ilike, or, sql, inArray } from "drizzle-orm";
 import { db } from "../db/client";
 import * as schema from "../../../../shared/schema";
 import { OrderItem } from "../../../../shared/schema";
@@ -21,7 +21,7 @@ export type HotelPartnerRow = schema.HotelPartner;
 
 export const PAGE_SIZE = 10;
 
-export class TierUnavailableError extends Error {}
+export class TierUnavailableError extends Error { }
 
 export interface Page<T> {
   items: T[];
@@ -298,14 +298,14 @@ export async function createTicketOrder(input: CreateTicketOrderInput): Promise<
       throw new TierUnavailableError(`Only ${remaining} ticket(s) left in this tier.`);
     }
   }
- 
+
   const profile = await getOrCreateProfile(input.phone);
 
   const serviceFeeRate = 0.02;
 
-const subtotal = input.unitPrice * input.quantity;
-const serviceFee = subtotal * serviceFeeRate;
-const amount = subtotal + serviceFee;
+  const subtotal = input.unitPrice * input.quantity;
+  const serviceFee = subtotal * serviceFeeRate;
+  const amount = subtotal + serviceFee;
   const reference = nextOrderReference("OX-ORD");
 
   const [order] = await db
@@ -683,24 +683,24 @@ export async function createHotelOrder(input: CreateHotelOrderInput): Promise<Ho
   const amount = subtotal + serviceFee;
   const reference = nextHotelReference();
 
-  
-  
+
+
   const [order] = await db
-  .insert(schema.hotelOrders)
-  .values({
-    reference,
-    userId: profile.id,
-    phone: input.phone,
-    hotelId: input.hotelId,
-    roomTypeId: input.roomTypeId,
-    roomTypeName: input.roomTypeName,
-    checkIn: input.checkIn,
-    checkOut: input.checkOut,
-    nights: input.nights,
-    guests: input.guests,
-    serviceFee:String(serviceFee),
-    subtotal: String(subtotal),
-    pricePerNight: String(input.pricePerNight),
+    .insert(schema.hotelOrders)
+    .values({
+      reference,
+      userId: profile.id,
+      phone: input.phone,
+      hotelId: input.hotelId,
+      roomTypeId: input.roomTypeId,
+      roomTypeName: input.roomTypeName,
+      checkIn: input.checkIn,
+      checkOut: input.checkOut,
+      nights: input.nights,
+      guests: input.guests,
+      serviceFee: String(serviceFee),
+      subtotal: String(subtotal),
+      pricePerNight: String(input.pricePerNight),
       amount: String(amount),
       status: "pending",
       expiresAt: new Date(Date.now() + 30 * 60 * 1000),
@@ -813,7 +813,7 @@ export async function getPendingRefunds(limit = 20) {
   return db.query.hotelOrders.findMany({
     where: and(
       eq(schema.hotelOrders.refundStatus, "pending"),
-      eq(schema.hotelOrders.status, "paid"),
+      inArray(schema.hotelOrders.status, ["paid", "declined"]),
     ),
     limit,
     with: {
@@ -1077,8 +1077,8 @@ export async function claimTransfer(
   await sendMessage(
     transfer.recipientPhone,
     `Your ticket for ${event?.title ?? "the event"} is confirmed.\n\n` +
-      `Name: ${fullName}\nRef: ${newTicket.checkInCode}\n\n` +
-      `Save this chat and show your QR code at the door.`
+    `Name: ${fullName}\nRef: ${newTicket.checkInCode}\n\n` +
+    `Save this chat and show your QR code at the door.`
   );
   await sendImageMessage(
     transfer.recipientPhone,
