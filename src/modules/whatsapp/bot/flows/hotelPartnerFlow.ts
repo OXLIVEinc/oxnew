@@ -1,9 +1,10 @@
 import { BotReply, ConversationContext } from "../../types";
 import { getSession, setState } from "../session";
 import { HotelPartnerRow } from "../../data/db";
-import { findHotelOrderByReference, declineHotelOrder, confirmHotelOrder, findPendingHotelOrders } from "../../data/db";
+import { findHotelOrderByReference, confirmHotelOrder, findPendingHotelOrders } from "../../data/db";
 import { buildHotelMenu, buildBookingSummary } from "../helpers";
-
+import * as db from '../../data/db';
+import * as hotelFlow from '../flows/hotelFlow';
 
 export async function handleMessage(
     phone: string,
@@ -179,9 +180,13 @@ async function handleConfirmation(
         };
     }
 
-    const updated = await declineHotelOrder(order.id);
-
-    // notify guest
+    
+      const updated = await db.declineHotelOrderAndQueueRefund(
+        order.id,
+        "Hotel declined booking.",
+      );
+    
+      await hotelFlow.notifyGuestOfDecline(updated);
 
     await setState(phone, "HOTEL_HOME", {});
 

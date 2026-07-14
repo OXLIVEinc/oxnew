@@ -1,5 +1,5 @@
 import { getSession, setState, pauseSession, resumeSession, clearPaused, hasPausedSession } from './session';
-import { isDeepLinkCode, isGlobalCommand, isMoreCommand, parseCancelOrderCommand, HELP_MESSAGE, FALLBACK, getEventCheckoutCta, getExpiryFooter } from './helpers';
+import { isDeepLinkCode, isGlobalCommand, isMoreCommand, parseCancelOrderCommand, FALLBACK, getEventCheckoutCta, getExpiryFooter } from './helpers';
 import * as db from '../data/db';
 import { BotReply, ConversationContext, FlowResult, IncomingMedia } from '../types';
 
@@ -300,9 +300,6 @@ export async function handleMessage(phone: string, text: string, waName?: string
           : undefined,
       };
 
-    case 'HOTEL_CONFIRM_ACTION':
-      return await handleHotelConfirmation(phone, trimmed, context);
-
     // A post-purchase upsell nudge sent by the hotel_upsell queue job
     case 'HOTEL_UPSELL_OFFER':
       return apply(phone, await hotelFlow.handleUpsellOfferInput(trimmed, context));
@@ -417,78 +414,3 @@ async function apply(phone: string, result: FlowResult): Promise<BotReply> {
 
 
 
-
-
-async function handleHotelConfirmation(
-  phone: string,
-  trimmed: string,
-  context: ConversationContext
-): Promise<BotReply> {
-  const answer = trimmed.trim().toUpperCase();
-
-  // No pending confirmation exists.
-  if (!context.hotelAction) {
-    await setState(phone, 'MAIN_MENU', {});
-    return {
-      reply: 'There is no pending confirmation.',
-    };
-  }
-
-  const { action, reference } = context.hotelAction;
-
-  if (answer === 'NO') {
-    await setState(phone, 'MAIN_MENU', {});
-    return {
-      reply: 'Action cancelled. No changes were made.',
-    };
-  }
-
-  if (answer !== 'YES') {
-    return {
-      reply: 'Please reply YES to continue or NO to cancel.',
-    };
-  }
-
-  // Re-fetch the latest version of the order before taking action.
-  const order = await db.findHotelOrderByReference(reference);
-
-  if (!order) {
-    await setState(phone, 'MAIN_MENU', {});
-    return {
-      reply: 'That booking could not be found.',
-    };
-  }
-
-  // Another staff member may have already handled it.
-  if (order.status !== 'paid') {
-    await setState(phone, 'MAIN_MENU', {});
-    return {
-      reply: `Booking ${reference} is no longer awaiting your response (status: ${order.status}).`,
-    };
-  }
-
-  if (action === 'CONFIRM') {
-    const updated = await db.confirmHotelOrder(order.id);
-    await hotelFlow.deliverConfirmedHotelOrder(updated);
-
-    await setState(phone, 'MAIN_MENU', {});
-
-    return {
-      reply: `Booking ${reference} confirmed. The guest has been notified.`,
-    };
-  }
-
-  const updated = await db.declineHotelOrderAndQueueRefund(
-    order.id,
-    "Hotel declined booking.",
-  );
-
-  await hotelFlow.notifyGuestOfDecline(updated);
-
-  await setState(phone, "MAIN_MENU", {});
-
-  return {
-    reply: `Booking ${reference} declined. The guest has been notified.`,
-  };
-
-}
