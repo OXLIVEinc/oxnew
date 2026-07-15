@@ -44,16 +44,23 @@ export const EventBannerUpload: React.FC<EventBannerUploadProps> = ({
           <ImageIcon className="w-4 h-4" />
           <span className="text-[11px] uppercase font-medium">Event Banner (16:9)</span>
         </div>
-        <p className="text-[11px] text-gray-500 mb-2">Recommended: 1920 × 1080px — This image will appear everywhere on the platform</p>
-        
-        <label className=" w-full aspect-video border border-dashed border-black bg-[#F5F5F5] flex items-center justify-center cursor-pointer hover:bg-[#ECECEC] transition-colors overflow-hidden relative">
+        <p className="text-[11px] text-gray-500 mb-2">
+          Recommended: 1920 × 1080px — This image will appear everywhere on the platform
+        </p>
+
+        {/* Main Upload Area - 16:9 */}
+        <label className="w-full aspect-video border border-dashed border-black bg-[#F5F5F5] flex items-center justify-center cursor-pointer hover:bg-[#ECECEC] transition-colors overflow-hidden relative">
           {bannerPreview ? (
-            <img src={bannerPreview} alt="Event banner" className="w-full h-full object-cover" />
+            <img 
+              src={bannerPreview} 
+              alt="Event banner" 
+              className="w-full h-full object-cover" 
+            />
           ) : (
             <div className="flex flex-col items-center gap-2">
               <ImageIcon className="w-8 h-8 text-[#999]" />
               <span className="text-[11px] uppercase text-[#999]">Upload Event Banner</span>
-              <span className="text-[10px] text-[#BBB]">16:9 aspect ratio</span>
+              <span className="text-[10px] text-[#BBB]">16:9 aspect ratio recommended</span>
             </div>
           )}
           <input
@@ -65,13 +72,17 @@ export const EventBannerUpload: React.FC<EventBannerUploadProps> = ({
           />
         </label>
 
-        {/* Discovery page preview */}
+        {/* Discovery Page Preview - Also 16:9 */}
         {bannerPreview && (
-          <div className="mt-4">
+          <div className="mt-6">
             <p className="text-[11px] text-gray-500 mb-2 uppercase">Preview — How it will appear on Discovery</p>
             <div className="max-w-sm">
-              <div className="aspect-video rounded-lg overflow-hidden bg-muted border border-border">
-                <img src={bannerPreview} alt="Discovery preview" className="w-full h-full object-cover" />
+              <div className="aspect-video rounded-lg overflow-hidden bg-muted border border-border shadow-sm">
+                <img 
+                  src={bannerPreview} 
+                  alt="Discovery preview" 
+                  className="w-full h-full object-cover" 
+                />
               </div>
               <div className="mt-2 px-1">
                 <div className="h-3 bg-gray-200 rounded w-3/4 mb-1"></div>

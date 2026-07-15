@@ -143,7 +143,6 @@ export async function markCheckedIn(profileId: string, orderId: string) {
 );
 
 await hotelEvents.notifyBookingUpdated(updated, { checkedIn: true });
-await notifyGuestCheckedIn(updated);
 
   try {
   await notifyGuestCheckedIn(updated);

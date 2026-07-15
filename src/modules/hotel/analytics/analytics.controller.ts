@@ -1,7 +1,3 @@
-/**
- * server/modules/hotel/analytics/analytics.controller.ts
- * -------------------------------------------------------------------------
- */
 import type { Request, Response } from "express";
 import { asyncHandler } from "@/middleware/error.middleware";
 import * as service from "./analytics.service";

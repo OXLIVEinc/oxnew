@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSubscription, PLAN_PRICES, PlanTier } from '@/hooks/useSubscription';
+import { useSubscription, PLAN_PRICES, type PlanTier } from '@/hooks/useSubscription';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Check, Crown } from 'lucide-react';

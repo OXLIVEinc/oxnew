@@ -20,11 +20,14 @@ import {
 import { EventMetadataForm } from '@/components/EventMetadataForm';
 import { EventBannerUpload } from '@/components/EventBannerUpload';
 import { EventGalleryUpload, type GalleryItem } from '@/components/EventGalleryUpload';
-import { VenueSeatingMapEditor, type VenueSection } from '@/components/VenueSeatingMapEditor';
+import { VenueSeatingMapEditor } from '@/components/VenueSeatingMapEditor';
 import { useCreateEvent } from '@/hooks/api/useEvents';
 import { getApiErrorMessage } from '@/lib/api/http';
 import type { CreateEventPayload } from '@/lib/api/types';
 import { useAuth } from '@/context/AuthContext';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 const eventSchema = z.object({
   eventName: z.string().trim().min(1, 'Event name is required').max(200),
   startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Start time must be HH:MM'),
@@ -33,9 +36,161 @@ const eventSchema = z.object({
   description: z.string().trim().min(1, 'Description is required').max(2000),
 });
 
+// Helper functions for time conversion
+const convertTo24Hour = (hour12: number, minute: number, period: 'AM' | 'PM'): string => {
+  let hour24 = hour12;
+  if (period === 'PM' && hour12 !== 12) hour24 = hour12 + 12;
+  if (period === 'AM' && hour12 === 12) hour24 = 0;
+  return `${hour24.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+};
+
+const convertTo12Hour = (time24: string): { hour: number; minute: number; period: 'AM' | 'PM' } | null => {
+  if (!time24) return null;
+  const [hour24, minute] = time24.split(':').map(Number);
+  let hour = hour24 % 12;
+  if (hour === 0) hour = 12;
+  const period = hour24 >= 12 ? 'PM' : 'AM';
+  return { hour, minute, period };
+};
+
+const formatTimeForDisplay = (time24: string): string => {
+  if (!time24) return '';
+  return time24; // Already in 24h format as required
+};
+
+const TimePicker = ({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (time: string) => void;
+  placeholder: string;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [hour, setHour] = useState<number>(12);
+  const [minute, setMinute] = useState<number>(0);
+  const [period, setPeriod] = useState<'AM' | 'PM'>('PM');
+
+  // Initialize from value
+  useEffect(() => {
+    if (value) {
+      const converted = convertTo12Hour(value);
+      if (converted) {
+        setHour(converted.hour);
+        setMinute(converted.minute);
+        setPeriod(converted.period);
+      }
+    }
+  }, [value]);
+
+  const handleSave = () => {
+    const time24 = convertTo24Hour(hour, minute, period);
+    onChange(time24);
+    setIsOpen(false);
+  };
+
+  const displayTime = value ? formatTimeForDisplay(value) : placeholder;
+
+  return (
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <PopoverTrigger asChild>
+        <button
+          className="px-2 md:px-4 py-2 md:py-3 text-[14px] md:text-[17px] text-black text-center focus:outline-none placeholder:text-[#C4C4C4] w-full border-l border-black hover:bg-gray-50 transition-colors"
+          type="button"
+        >
+          {displayTime || placeholder}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-72 p-4" align="end">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-medium">Select Time</div>
+          </div>
+
+          <div className="flex gap-3">
+            {/* Hour */}
+            <div className="flex-1">
+              <label className="text-xs text-gray-500 block mb-1">Hour</label>
+              <Select
+                value={hour.toString()}
+                onValueChange={(v) => setHour(parseInt(v))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
+                    <SelectItem key={h} value={h.toString()}>
+                      {h}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Minute */}
+            <div className="flex-1">
+              <label className="text-xs text-gray-500 block mb-1">Minute</label>
+              <Select
+                value={minute.toString().padStart(2, '0')}
+                onValueChange={(v) => setMinute(parseInt(v))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 12 }, (_, i) => i * 5).map((m) => (
+                    <SelectItem key={m} value={m.toString().padStart(2, '0')}>
+                      {m.toString().padStart(2, '0')}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* AM/PM */}
+            <div className="flex-1">
+              <label className="text-xs text-gray-500 block mb-1">Period</label>
+              <Select
+                value={period}
+                onValueChange={(v) => setPeriod(v as 'AM' | 'PM')}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="AM">AM</SelectItem>
+                  <SelectItem value="PM">PM</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="flex gap-2 pt-2">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => setIsOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button className="flex-1" onClick={handleSave}>
+              Done
+            </Button>
+          </div>
+
+          <div className="text-center text-xs text-gray-500">
+            Will be stored and displayed as 24-hour format
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+};
+
 const CreateEvent = () => {
   const [eventName, setEventName] = useState('');
-  // startsAt/startTime are REQUIRED per the schema; endsAt/endTime are optional.
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [startTime, setStartTime] = useState('');
   const [endDate, setEndDate] = useState<Date | undefined>();
@@ -47,8 +202,6 @@ const CreateEvent = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
 
   const [isPaid, setIsPaid] = useState(false);
-  // Every event needs at least one ticket tier — seed with the default
-  // General Admission tier (organizer can rename/edit or add more).
   const [ticketTiers, setTicketTiers] = useState<TicketTierFormValue[]>([createDefaultTicketTier()]);
   const [ageGroup, setAgeGroup] = useState('');
   const [genre, setGenre] = useState('');
@@ -58,21 +211,20 @@ const CreateEvent = () => {
   const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
   const [venueMapPreview, setVenueMapPreview] = useState<string | null>(null);
   const [venueMapFile, setVenueMapFile] = useState<File | null>(null);
-  const [venueSections, setVenueSections] = useState<VenueSection[]>([]);
+
   const locationInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { onPlaceSelected } = useGooglePlacesAutocomplete(locationInputRef);
   const createEvent = useCreateEvent();
   const { authUser: user } = useAuth();
- 
+
   useEffect(() => {
-  setShowAuthModal(!user);
-}, [user]);
+    setShowAuthModal(!user);
+  }, [user]);
 
   useEffect(() => {
     onPlaceSelected((place) => {
       setLocation(place.formatted_address || place.name || '');
-      // geometry.location is a Google LatLng object with lat()/lng() accessors.
       const geometry = place.geometry as { location?: { lat: () => number; lng: () => number } } | undefined;
       if (geometry?.location) {
         setLocationLat(geometry.location.lat());
@@ -130,17 +282,7 @@ const CreateEvent = () => {
       let venueMapPayload: CreateEventPayload['venueMap'] = null;
       if (venueMapFile) {
         const imageUrl = await uploadFile(venueMapFile, 'venue-map');
-        venueMapPayload = {
-          imageUrl,
-          sections: venueSections.map((s) => ({
-            name: s.name,
-            color: s.color,
-            capacity: s.capacity,
-            // VenueSeatingMapEditor references tiers by array index (as a string) — see
-            // the `ticketTiers` prop passed to it below.
-            tierIndex: s.ticket_tier_id !== null ? parseInt(s.ticket_tier_id, 10) : null,
-          })),
-        };
+        venueMapPayload = { imageUrl };
       }
 
       const gallery: { mediaUrl: string; mediaType: string }[] = [];
@@ -211,7 +353,7 @@ const CreateEvent = () => {
                 onChange={(e) => setEventName(e.target.value)}
               />
 
-              {/* Start/End Date/Time — start is required, end is optional */}
+              {/* Start/End Date/Time */}
               <div className="relative">
                 <div className="grid grid-cols-[80px_1fr_80px] md:grid-cols-[100px_1fr_100px] gap-0 border border-black mb-4 md:mb-6">
                   <div className="flex items-center justify-start gap-1.5 md:gap-2 border-r border-black px-2 md:px-3 py-2 md:py-3">
@@ -228,7 +370,11 @@ const CreateEvent = () => {
                       <Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus className={cn("p-3 pointer-events-auto")} />
                     </PopoverContent>
                   </Popover>
-                  <input type="text" placeholder="15:00" className="px-2 md:px-4 py-2 md:py-3 text-[14px] md:text-[17px] text-black text-center focus:outline-none placeholder:text-[#C4C4C4]" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+                  <TimePicker
+                    value={startTime}
+                    onChange={setStartTime}
+                    placeholder="15:00"
+                  />
                 </div>
 
                 <div className="grid grid-cols-[80px_1fr_80px] md:grid-cols-[100px_1fr_100px] gap-0 border border-black">
@@ -246,39 +392,76 @@ const CreateEvent = () => {
                       <Calendar mode="single" selected={endDate} onSelect={setEndDate} initialFocus className={cn("p-3 pointer-events-auto")} />
                     </PopoverContent>
                   </Popover>
-                  <input type="text" placeholder="16:00" className="px-2 md:px-4 py-2 md:py-3 text-[14px] md:text-[17px] text-black text-center focus:outline-none placeholder:text-[#C4C4C4]" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+                  <TimePicker
+                    value={endTime}
+                    onChange={setEndTime}
+                    placeholder="16:00"
+                  />
                 </div>
               </div>
 
               {/* Location */}
-              <input ref={locationInputRef} type="text" placeholder="Add event location" className="w-full px-3 md:px-4 py-2 md:py-3 text-[14px] md:text-[17px] text-black border border-black focus:outline-none placeholder:text-[#C4C4C4]" value={location} onChange={(e) => { setLocation(e.target.value); setLocationLat(null); setLocationLng(null); }} />
+              <input 
+                ref={locationInputRef} 
+                type="text" 
+                placeholder="Add event location" 
+                className="w-full px-3 md:px-4 py-2 md:py-3 text-[14px] md:text-[17px] text-black border border-black focus:outline-none placeholder:text-[#C4C4C4]" 
+                value={location} 
+                onChange={(e) => { 
+                  setLocation(e.target.value); 
+                  setLocationLat(null); 
+                  setLocationLng(null); 
+                }} 
+              />
 
               {/* Description */}
-              <textarea placeholder="Add description" rows={6} className="w-full px-3 md:px-4 py-2 md:py-3 text-[14px] md:text-[17px] text-black border border-black focus:outline-none resize-none placeholder:text-[#C4C4C4]" value={description} onChange={(e) => setDescription(e.target.value)} />
+              <textarea 
+                placeholder="Add description" 
+                rows={6} 
+                className="w-full px-3 md:px-4 py-2 md:py-3 text-[14px] md:text-[17px] text-black border border-black focus:outline-none resize-none placeholder:text-[#C4C4C4]" 
+                value={description} 
+                onChange={(e) => setDescription(e.target.value)} 
+              />
 
               {/* Event Metadata */}
-              <EventMetadataForm ageGroup={ageGroup} genre={genre} tags={tags} onAgeGroupChange={setAgeGroup} onGenreChange={setGenre} onTagsChange={setTags} />
+              <EventMetadataForm 
+                ageGroup={ageGroup} 
+                genre={genre} 
+                tags={tags} 
+                onAgeGroupChange={setAgeGroup} 
+                onGenreChange={setGenre} 
+                onTagsChange={setTags} 
+              />
 
-              {/* Ticket Tiers — every event needs at least one */}
-              <EventTicketTiers tiers={ticketTiers} onChange={setTicketTiers} isPaid={isPaid} onPaidChange={setIsPaid} />
+              {/* Ticket Tiers */}
+              <EventTicketTiers 
+                tiers={ticketTiers} 
+                onChange={setTicketTiers} 
+                isPaid={isPaid} 
+                onPaidChange={setIsPaid} 
+              />
 
               {/* Banner */}
               <EventBannerUpload
                 bannerPreview={bannerPreview}
-                onBannerChange={(file, preview) => { setBannerFile(file); setBannerPreview(preview); }}
+                onBannerChange={(file, preview) => { 
+                  setBannerFile(file); 
+                  setBannerPreview(preview); 
+                }}
               />
 
               {/* Gallery */}
               <EventGalleryUpload items={galleryItems} onChange={setGalleryItems} />
 
-              {/* Venue Seating Map */}
+              {/* Venue Seating Map (Simplified) */}
               <VenueSeatingMapEditor
                 mapImagePreview={venueMapPreview}
-                onMapImageChange={(file, preview) => { setVenueMapFile(file); setVenueMapPreview(preview); }}
-                sections={venueSections}
-                onSectionsChange={setVenueSections}
-                ticketTiers={ticketTiers.map((t, i) => ({ id: i.toString(), name: t.name, price: t.price }))}
+                onMapImageChange={(file, preview) => { 
+                  setVenueMapFile(file); 
+                  setVenueMapPreview(preview); 
+                }}
               />
+
               {/* Submit Buttons */}
               <div className="flex gap-3 mt-4 md:mt-8">
                 <div className="group flex items-center self-stretch relative overflow-hidden flex-1">

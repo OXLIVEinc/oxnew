@@ -124,6 +124,8 @@ export interface TicketTierFormValues {
   quantity?: number | null;
 }
 
+
+
 export interface CreateEventPayload {
   title: string;
   description?: string;
@@ -147,8 +149,7 @@ export interface CreateEventPayload {
   ticketTiers: TicketTierFormValues[];
   gallery?: { mediaUrl: string; mediaType: string }[];
   venueMap?: {
-    imageUrl: string;
-    sections: { name: string; color: string; capacity: number; tierIndex?: number | null }[];
+    imageUrl: string;     
   } | null;
 }
 
