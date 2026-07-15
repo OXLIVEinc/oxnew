@@ -37,8 +37,6 @@ folder client {
         file AdminTicketsPanel.tsx
         file useAdminAuth.ts
       }
-
-      
       folder discover {
         file DiscoverEventCard.tsx
         file DiscoverFilterBar.tsx
@@ -72,9 +70,12 @@ folder client {
         file DashboardOverviewCards.tsx
         file DashboardSidebar.tsx
         file EventOverview.tsx
+        file EventsPanel.tsx
         file FeatureGate.tsx
         file GuestListPanel.tsx
         file OrganizerTicketsTab.tsx
+        file OverViewCards.tsx
+        file ProiflePanel.tsx
         file QRScannerPanel.tsx
         file SubscriptionPanel.tsx
       }
@@ -190,9 +191,9 @@ folder client {
         file useHotelPayouts.ts
         file useHotelProfile.ts
         file useHotelRoomTypes.ts
+        file useOrganizer.ts
         file useRegistration.ts
         file useTicketTiers.ts
-        file useOrganizer.ts
       }
       file use-mobile.tsx
       file use-toast.ts
@@ -223,12 +224,12 @@ folder client {
         file hotelRoomTypes.ts
         file hotelTypes.ts
         file http.ts
+        file organizer.ts
         file registrations.ts
         file review.ts
         file tickets.ts
         file ticketTiers.ts
         file types.ts
-        file organizer.ts
       }
       file api.ts
       file eventSchedule.ts
@@ -339,7 +340,6 @@ folder src {
       file guest.routes.ts
       file guest.service.ts
     }
-
     folder hotel {
       folder analytics {
         file analytics.controller.ts
@@ -385,6 +385,34 @@ folder src {
       file hotel.access.ts
       file hotel.events.ts
       file hotel.routes.ts
+    }
+    folder organizer {
+      folder campaigns {
+        file campaigns.controller.ts
+        file campaigns.routes.ts
+        file campaigns.service.ts
+      }
+      folder dashboard {
+        file dashboard.controller.ts
+        file dashboard.routes.ts
+        file dashboard.service.ts
+      }
+      folder guests {
+        file guests.controller.ts
+        file guests.routes.ts
+        file guests.service.ts
+      }
+      folder profile {
+        file profile.controller.ts
+        file profile.routes.ts
+        file profile.service.ts
+      }
+      folder subscription {
+        file subscription.controller.ts
+        file subscription.routes.ts
+        file subscription.service.ts
+      }
+      file organizer.routes.ts
     }
     folder payments {
       file payments.routes.ts
@@ -493,38 +521,7 @@ folder src {
       }
       file types.ts
     }
-
-  folder organizer {
-      folder campaigns {
-        file campaigns.controller.ts
-        file campaigns.routes.ts
-        file campaigns.service.ts
-      }
-      folder dashboard {
-        file dashboard.controller.ts
-        file dashboard.routes.ts
-        file dashboard.service.ts
-      }
-      folder guests {
-        file guests.controller.ts
-        file guests.routes.ts
-        file guests.service.ts
-      }
-      folder profile {
-        file profile.controller.ts
-        file profile.routes.ts
-        file profile.service.ts
-      }
-      folder subscription {
-        file subscription.controller.ts
-        file subscription.routes.ts
-        file subscription.service.ts
-      }
-      file organizer.routes.ts
-    }
-
   }
-
   folder routes {
     file index.ts
   }
