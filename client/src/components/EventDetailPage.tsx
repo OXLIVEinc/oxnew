@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/context/AuthContext'; // Make sure path is correct
+
 import { Navbar } from './Navbar';
 import { EventCountdown } from './EventCountdown';
 import { EventMeta } from './EventMeta';
@@ -14,15 +16,11 @@ import { EventLikeShare } from './EventLikeShare';
 import { EventGalleryDisplay } from './EventGalleryDisplay';
 import { EventTagsDisplay } from './EventTagsDisplay';
 import { VenueSeatingMapDisplay } from './VenueSeatingMapDisplay';
-import { useGeoLocation } from '@/hooks/useGeoLocation';
 import { AuthLoadingScreen } from './AuthLoading';
-import { useAuth } from '@/context/AuthContext';
-import { useRef } from 'react';
 
 interface Event {
   id: string;
   title: string;
-  creator: string;
   description: string;
   date: string;
   time: string;
@@ -45,9 +43,10 @@ interface TicketTier {
   price: number;
   quantity: number;
   sold: number;
+  is_sold_out?: boolean;
 }
 
-// Pre-defined gradient combinations for variety
+// Gradient combinations
 const gradientCombinations = [
   'from-purple-600 via-pink-500 to-orange-400',
   'from-blue-600 via-cyan-500 to-teal-400',
@@ -59,11 +58,8 @@ const gradientCombinations = [
   'from-cyan-600 via-blue-500 to-indigo-400',
   'from-violet-600 via-purple-500 to-fuchsia-400',
   'from-amber-600 via-yellow-500 to-lime-400',
-  'from-emerald-600 via-teal-500 to-cyan-400',
-  'from-rose-600 via-pink-500 to-purple-400',
 ];
 
-// Pre-defined overlay gradients
 const overlayCombinations = [
   'from-purple-900/30 via-transparent to-pink-500/20',
   'from-blue-900/30 via-transparent to-cyan-500/20',
@@ -74,78 +70,68 @@ const overlayCombinations = [
 ];
 
 export const EventDetailPage: React.FC = () => {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  // const geo = useGeoLocation();
-  const [isRegistered, setIsRegistered] = useState(false);
+  const { isHotelPartner } = useAuth();
+
   const [event, setEvent] = useState<Event | null>(null);
   const [ticketTiers, setTicketTiers] = useState<TicketTier[]>([]);
+  const [isRegistered, setIsRegistered] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [selectedTierId, setSelectedTierId] = useState<string | null>(null);
-  const  {isHotelPartner} = useAuth()
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+
   const asideRef = useRef<HTMLDivElement>(null);
 
-const handleWheel = (e: React.WheelEvent) => {
-  e.preventDefault();
-
-  asideRef.current?.scrollBy({
-    top: e.deltaY,
-    behavior: "auto",
-  });
-};
-
-  
-  // Generate random gradients on component mount
   const [randomGradient, setRandomGradient] = useState('');
   const [randomOverlay, setRandomOverlay] = useState('');
-  
+
+  // Random gradient on mount
   useEffect(() => {
-    // Pick random gradients from the arrays
-    const gradient = gradientCombinations[Math.floor(Math.random() * gradientCombinations.length)];
-    const overlay = overlayCombinations[Math.floor(Math.random() * overlayCombinations.length)];
-    setRandomGradient(gradient);
-    setRandomOverlay(overlay);
+    setRandomGradient(gradientCombinations[Math.floor(Math.random() * gradientCombinations.length)]);
+    setRandomOverlay(overlayCombinations[Math.floor(Math.random() * overlayCombinations.length)]);
   }, []);
 
+  // Scroll to top when event changes
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [id]);
 
+  // Fetch event data + ticket tiers
   useEffect(() => {
+    if (!id) return;
     fetchEvent();
-    checkRegistration();
-
-    // Real-time subscription for ticket tier sold counts
-    if (id) {
-      const channel = supabase
-        .channel(`ticket-tiers-${id}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'ticket_tiers', filter: `event_id=eq.${id}` }, () => {
-          fetchTicketTiers(id);
-        })
-        .subscribe();
-      return () => { supabase.removeChannel(channel); };
-    }
   }, [id]);
 
-  const fetchTicketTiers = async (eventId: string) => {
-    const { data: tiers } = await supabase
-      .from('ticket_tiers')
-      .select('*')
-      .eq('event_id', eventId)
-      .order('sort_order', { ascending: true });
-    if (tiers) {
-      setTicketTiers(tiers);
-      if (!selectedTierId && tiers.length > 0) setSelectedTierId(tiers[0].id);
-    }
-  };
-  
+  // Real-time ticket tier updates
+  useEffect(() => {
+    if (!id) return;
+
+    const channel = supabase
+      .channel(`ticket-tiers-${id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'ticket_tiers', filter: `event_id=eq.${id}` },
+        () => fetchTicketTiers(id)
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id]);
+
   const fetchEvent = async () => {
-    const { data, error } = id
-      ? await supabase.from('events').select('*').eq('id', id).maybeSingle()
-      : await supabase.from('events').select('*').limit(1).maybeSingle();
-    
+    if (!id) return;
+    setLoading(true);
+
+    const { data, error } = await supabase
+      .from('events')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+
     if (error || !data) {
       setNotFound(true);
     } else {
@@ -155,26 +141,31 @@ const handleWheel = (e: React.WheelEvent) => {
     setLoading(false);
   };
 
-  const checkRegistration = async () => {
-    if (!id) return;
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) return;
+  const fetchTicketTiers = async (eventId: string) => {
     const { data } = await supabase
-      .from('event_registrations')
-      .select('id')
-      .eq('user_id', session.user.id)
-      .eq('event_id', id)
-      .maybeSingle();
-    setIsRegistered(!!data);
+      .from('ticket_tiers')
+      .select('*')
+      .eq('event_id', eventId);
+
+    if (data) {
+      setTicketTiers(data);
+      if (!selectedTierId && data.length > 0) {
+        setSelectedTierId(data[0].id);
+      }
+    }
+  };
+
+  // Handle registration success callback
+  const handleRegisterSuccess = () => {
+    setIsRegistered(true);
+    fetchTicketTiers(event!.id);
   };
 
   const handleGetDirections = () => {
-    window.open('https://maps.google.com', '_blank');
+    window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event?.address || '')}`, '_blank');
   };
 
-  if (loading) {
-    return <AuthLoadingScreen/>;
-  }
+  if (loading) return <AuthLoadingScreen />;
 
   if (notFound || !event) {
     return (
@@ -183,8 +174,13 @@ const handleWheel = (e: React.WheelEvent) => {
         <Navbar />
         <div className="text-center mt-20">
           <h1 className="text-4xl font-medium mb-4 text-[#1A1A1A]">Event Not Found</h1>
-          <p className="text-lg text-[#1A1A1A] opacity-70 mb-8">The event you're looking for doesn't exist or has been removed.</p>
-          <button onClick={() => navigate('/discover')} className="px-6 py-3 bg-[#1A1A1A] text-white border border-[#1A1A1A] hover:bg-white hover:text-[#1A1A1A] transition-colors uppercase text-sm font-medium">
+          <p className="text-lg text-[#1A1A1A] opacity-70 mb-8">
+            The event you're looking for doesn't exist or has been removed.
+          </p>
+          <button
+            onClick={() => navigate('/discover')}
+            className="px-6 py-3 bg-[#1A1A1A] text-white border border-[#1A1A1A] hover:bg-white hover:text-[#1A1A1A] transition-colors uppercase text-sm font-medium"
+          >
             Browse Events
           </button>
         </div>
@@ -194,148 +190,156 @@ const handleWheel = (e: React.WheelEvent) => {
 
   const bgImage = event.desktop_banner_url || event.background_image_url;
 
-  return <>
-    <SEOHead 
-      title={event.title}
-      description={event.description.substring(0, 160)}
-      image={event.background_image_url}
-      keywords={`event, ${event.title}, ${event.address}, community event`}
-    />
-    <link href="https://fonts.googleapis.com/css2?family=Host+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <Navbar />
+  return (
+    <>
+      <SEOHead
+        title={event.title}
+        description={event.description.substring(0, 160)}
+        image={bgImage}
+        keywords={`event, ${event.title}, ${event.address}`}
+      />
 
-    <main className="flex h-screen flex-col w-full relative bg-white mx-auto my-0 lg:flex-row">
-      {/* Image container with random gradient background and centered image */}
-      <div 
-        onWheel={handleWheel}
-        className="flex flex-col h-screen justify-end items-center fixed w-[calc(100%-540px)] left-0 top-0 overflow-hidden max-lg:relative max-lg:w-full" 
-        role="img" 
-        aria-label="Event background image"
-      >
-        <div className={`relative w-full h-full p-10 bg-gradient-to-br ${randomGradient} flex items-center justify-center`}>
-          {/* Decorative gradient overlay with random combination */}
-          <div className={`absolute inset-0 bg-gradient-to-tr ${randomOverlay}`}></div>
-          
-          {/* Image container with proper centering */}
-          <div className="relative w-full max-w-4xl aspect-video mx-auto my-8 rounded-2xl shadow-2xl overflow-hidden">
-            <img
-              src={bgImage}
-              alt={event.title}
-              className="w-full h-full object-cover animate-[zoom-in_1.2s_ease-out_forwards]"
-            />
-            {/* Inner shadow for elegant framing */}
-            <div className="absolute inset-0 shadow-inner pointer-events-none"></div>
-          </div>
-          
-          {/* Countdown overlay positioned at bottom left of image */}
-          <div className="absolute bottom-8 left-8 z-10 animate-fade-in" style={{ animationDelay: '0.5s', animationFillMode: 'both' }}>
-            <EventCountdown targetDate={new Date(event.target_date)} />
+      <Navbar />
+
+      <main className="flex h-screen flex-col w-full relative bg-white mx-auto my-0 lg:flex-row">
+        {/* Left Side - Image Section */}
+        <div
+          onWheel={(e) => {
+            e.preventDefault();
+            asideRef.current?.scrollBy({ top: e.deltaY, behavior: 'auto' });
+          }}
+          className="flex flex-col h-screen justify-end items-center fixed w-[calc(100%-540px)] left-0 top-0 overflow-hidden max-lg:relative max-lg:w-full"
+        >
+          <div className={`relative w-full h-full p-10 bg-gradient-to-br ${randomGradient} flex items-center justify-center`}>
+            <div className={`absolute inset-0 bg-gradient-to-tr ${randomOverlay}`} />
+            
+            <div className="relative w-full max-w-4xl aspect-video mx-auto my-8 rounded-2xl shadow-2xl overflow-hidden">
+              <img
+                src={bgImage}
+                alt={event.title}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 shadow-inner pointer-events-none" />
+            </div>
+
+            <div className="absolute bottom-8 left-8 z-10">
+              <EventCountdown targetDate={new Date(event.target_date)} />
+            </div>
           </div>
         </div>
-      </div>
-      
-      <aside  ref={asideRef} className="flex w-full pb-2 lg:w-[540px] flex-col justify-start items-start lg:fixed lg:h-[calc(100vh-5rem)] lg:right-0 lg:top-0 bg-white lg:overflow-y-auto">
-        <div className="flex w-full  flex-col items-start relative p-6  pb-2 gap-8 opacity-0 animate-fade-in [animation-delay:200ms]">
-          <div className="flex flex-col items-start gap-4 self-stretch relative">
-            <EventMeta date={event.date} time={event.time} />
-            <EventHeader title={event.title}  creatorUserId={event.created_by} />
-            <EventTagsDisplay ageGroup={event.age_group} genre={event.genre} tags={event.tags} />
-            <EventLikeShare eventId={event.id} eventTitle={event.title} onAuthRequired={() => setIsAuthOpen(true)} />
-          </div>
-          
-          <EventDescription description={event.description} />
 
-          {/* Ticket Tiers Display with real-time availability */}
-          {ticketTiers.length > 0 && (
-            <section className="flex flex-col items-start gap-4 self-stretch">
-              <div className="flex flex-col items-start gap-5 self-stretch">
-                <hr className="h-px self-stretch bg-[#1A1A1A] border-0" />
-                <h2 className="text-[#1A1A1A] text-[11px] font-normal uppercase">TICKETS</h2>
-              </div>
-              <div className="flex flex-col gap-2 self-stretch">
-                {ticketTiers.map((tier) => {
-                  const available = tier.quantity - tier.sold;
-                  const soldOut = (tier as any).is_sold_out || available <= 0;
-                  const pctSold = Math.min((tier.sold / tier.quantity) * 100, 100);
-                  return (
-                    <button
-                      key={tier.id}
-                      onClick={() => !soldOut && setSelectedTierId(tier.id)}
-                      disabled={soldOut}
-                      className={`flex flex-col w-full px-4 py-3 border transition-colors text-left ${
-                        selectedTierId === tier.id
-                          ? 'border-[#FA76FF] bg-[#FA76FF]/5'
-                          : 'border-[#1A1A1A] hover:bg-gray-50'
-                      } ${soldOut ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                    >
-                      <div className="flex items-center justify-between w-full">
-                        <div>
-                          <div className="text-[14px] font-medium">{tier.name}</div>
-                          {tier.description && <div className="text-[12px] text-gray-500 mt-0.5">{tier.description}</div>}
-                        </div>
-                        <div className="text-right">
-                          <div className="text-[14px] font-medium">
-                            {tier.price > 0 ? `₦${tier.price.toFixed(2)}` : 'Free'}
+        {/* Right Sidebar */}
+        <aside
+          ref={asideRef}
+          className="flex w-full pb-2 lg:w-[540px] flex-col justify-start items-start lg:fixed lg:h-[calc(100vh-5rem)] lg:right-0 lg:top-0 bg-white lg:overflow-y-auto"
+        >
+          <div className="flex w-full flex-col items-start relative p-6 pb-2 gap-8">
+            <div className="flex flex-col items-start gap-4 self-stretch">
+              <EventMeta date={event.date} time={event.time} />
+              <EventHeader title={event.title} creatorUserId={event.created_by} />
+              <EventTagsDisplay ageGroup={event.age_group} genre={event.genre} tags={event.tags} />
+              <EventLikeShare
+                eventId={event.id}
+                eventTitle={event.title}
+                onAuthRequired={() => setIsAuthOpen(true)}
+              />
+            </div>
+
+            <EventDescription description={event.description} />
+
+            <div className="flex items-center justify-between border border-[#1A1A1A] px-4 py-3 w-full">
+              <span className="text-[11px] uppercase text-gray-500">Event Type</span>
+              <span className={`text-sm font-medium ${event.is_paid ? "text-[#FA76FF]" : "text-green-600"}`}>
+                {event.is_paid ? "Paid Event" : "Free Event"}
+              </span>
+            </div>
+
+            {/* Ticket Tiers */}
+            {ticketTiers.length > 0 && (
+              <section className="flex flex-col items-start gap-4 self-stretch">
+                <div className="flex flex-col items-start gap-5 self-stretch">
+                  <hr className="h-px self-stretch bg-[#1A1A1A] border-0" />
+                  <h2 className="text-[#1A1A1A] text-[11px] font-normal uppercase">TICKETS</h2>
+                </div>
+
+                <div className="flex flex-col gap-2 self-stretch">
+                  {ticketTiers.map((tier) => {
+                    const available = tier.quantity - tier.sold;
+                    const soldOut = tier.is_sold_out || available <= 0;
+                    const pctSold = Math.min((tier.sold / tier.quantity) * 100, 100);
+
+                    return (
+                      <button
+                        key={tier.id}
+                        onClick={() => !soldOut && setSelectedTierId(tier.id)}
+                        disabled={soldOut}
+                        className={`flex flex-col w-full px-4 py-3 border transition-colors text-left ${
+                          selectedTierId === tier.id ? 'border-[#FA76FF] bg-[#FA76FF]/5' : 'border-[#1A1A1A] hover:bg-gray-50'
+                        } ${soldOut ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                      >
+                        <div className="flex items-center justify-between w-full">
+                          <div>
+                            <div className="text-[14px] font-medium">{tier.name}</div>
+                            {tier.description && <div className="text-[12px] text-gray-500 mt-0.5">{tier.description}</div>}
                           </div>
-                          <div className={`text-[11px] uppercase ${soldOut ? 'text-red-500 font-medium' : 'text-gray-400'}`}>
-                            {soldOut ? 'Sold out' : `${available} left`}
+                          <div className="text-right">
+                            <div className="text-[14px] font-medium">
+                              {tier.price > 0 ? `₦${tier.price}` : 'Free'}
+                            </div>
+                            <div className={`text-[11px] uppercase ${soldOut ? 'text-red-500' : 'text-gray-400'}`}>
+                              {soldOut ? 'Sold out' : `${available} left`}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      {/* Progress bar */}
-                      <div className="w-full bg-gray-200 h-1 mt-2 rounded-full overflow-hidden">
-                        <div 
-                          className={`h-1 transition-all duration-500 rounded-full ${soldOut ? 'bg-red-500' : 'bg-[#FA76FF]'}`}
-                          style={{ width: `${pctSold}%` }}
-                        />
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-          )}
 
-          <VenueSeatingMapDisplay
-            eventId={event.id}
-            ticketTiers={ticketTiers}
-            selectedTierId={selectedTierId}
-            onSelectTier={setSelectedTierId}
-          />
-          <EventGalleryDisplay eventId={event.id} />
-          <EventLocation address={event.address} onGetDirections={handleGetDirections} />
-        </div>
-        
-        
-      </aside>
+                        <div className="w-full bg-gray-200 h-1 mt-2 rounded-full overflow-hidden">
+                          <div
+                            className={`h-1 transition-all duration-500 rounded-full ${soldOut ? 'bg-red-500' : 'bg-[#FA76FF]'}`}
+                            style={{ width: `${pctSold}%` }}
+                          />
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
 
-
-       <div className="sticky h-[5rem] bg-white flex items-center justify-center  bottom-0 w-full py-6 border-t border-border lg:fixed lg:bottom-0 lg:right-0 lg:w-[540px]">
-          <div className="px-6 lg:px-10 w-full">
-            {
-              isHotelPartner?
-              <>
-               <div className='font-bold'>
-                 {
-                  event.title
-                 }
-               </div>
-              </>:
-               <EventRegistration 
+            <VenueSeatingMapDisplay
               eventId={event.id}
-              onRegister={() => { checkRegistration(); fetchTicketTiers(event.id); }}
-              isRegistered={isRegistered}
-              onAuthRequired={() => setIsAuthOpen(true)}
-              targetDate={new Date(event.target_date)}
               ticketTiers={ticketTiers}
               selectedTierId={selectedTierId}
-              className="opacity-0 animate-fade-in [animation-delay:400ms]" 
+              onSelectTier={setSelectedTierId}
             />
-            }
+
+            <EventGalleryDisplay eventId={event.id} />
+            <EventLocation address={event.address} onGetDirections={handleGetDirections} />
+          </div>
+        </aside>
+
+        {/* Bottom Registration Bar */}
+        <div className="sticky h-[5rem] bg-white flex items-center justify-center bottom-0 w-full py-6 border-t border-border lg:fixed lg:bottom-0 lg:right-0 lg:w-[540px]">
+          <div className="px-6 lg:px-10 w-full">
+            {isHotelPartner ? (
+              <div className="font-bold text-lg">{event.title}</div>
+            ) : (
+              <EventRegistration
+                isPaid={event.is_paid}
+                eventId={event.id}
+                onRegister={handleRegisterSuccess}
+                isRegistered={isRegistered}
+                onAuthRequired={() => setIsAuthOpen(true)}
+                targetDate={new Date(event.target_date)}
+                ticketTiers={ticketTiers}
+                selectedTierId={selectedTierId}
+                className="opacity-0 animate-fade-in [animation-delay:400ms]"
+              />
+            )}
           </div>
         </div>
-     
-    </main>
-    <AuthSheet isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
-  </>;
+      </main>
+
+      <AuthSheet isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
+    </>
+  );
 };

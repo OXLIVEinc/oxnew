@@ -21,8 +21,8 @@ import {
 } from '@/components/EventTicketTiers';
 import { EventMetadataForm } from '@/components/EventMetadataForm';
 import { EventBannerUpload } from '@/components/EventBannerUpload';
-import { EventGalleryUpload, GalleryItem } from '@/components/EventGalleryUpload';
-import { VenueSeatingMapEditor, VenueSection } from '@/components/VenueSeatingMapEditor';
+import { EventGalleryUpload, type GalleryItem } from '@/components/EventGalleryUpload';
+import { VenueSeatingMapEditor, type VenueSection } from '@/components/VenueSeatingMapEditor';
 import { useEvent, useUpdateEvent } from '@/hooks/api/useEvents';
 import { useAddTicketTier, useUpdateTicketTier, useDeleteTicketTier } from '@/hooks/api/useTicketTiers';
 import { getApiErrorMessage } from '@/lib/api/http';
