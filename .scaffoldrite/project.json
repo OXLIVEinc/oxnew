@@ -1,0 +1,20 @@
+{
+  "framework": "",
+  "language": "",
+  "version": "1.0.0",
+  "author": "",
+  "conventions": {
+    "description": "",
+    "folderStructure": [],
+    "namingRules": [],
+    "folderDepthLimits": [],
+    "userNotes": []
+  },
+  "additionalInfo": {
+    "stateManagement": "",
+    "styling": "",
+    "testing": "",
+    "routing": "",
+    "apiClient": ""
+  }
+}

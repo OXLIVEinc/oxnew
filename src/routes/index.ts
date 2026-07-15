@@ -6,12 +6,10 @@ import discoverRoutes from "@/modules/discover/discover.routes";
 import ticketsRoutes from "@/modules/tickets/tickets.routes";
 import paymentsRoutes from "@/modules/payments/payments.routes";
 import hotelRoutes from "@/modules/hotel/hotel.routes";
+import organizerRoutes from "@/modules/organizer/organizer.routes";
 import refundRoutes from "@/modules/whatsapp/routes/refund";
 
-
-
 const router = Router();
-
 
 router.use("/events", eventsRoutes);
 router.use("/registrations", registrationsRoutes);
@@ -20,6 +18,7 @@ router.use("/discover", discoverRoutes);
 router.use("/tickets", ticketsRoutes);
 router.use("/payments", paymentsRoutes);
 router.use("/hotel", hotelRoutes);
+router.use("/organizer", organizerRoutes);
 router.use("/refund", refundRoutes);
 
 export default router;

@@ -1,16 +1,16 @@
-/**
- * server/modules/tickets/tickets.service.ts
- * -------------------------------------------------------------------------
- * Organizer-facing check-in flow. Scans the QR (a signed JWT token), then
- * marks the ticket as checked in — reusing the exact same validation used
- * to generate the ticket, so a check-in can never accept a forged QR.
- * -------------------------------------------------------------------------
- */
 import { eq } from "drizzle-orm";
 import { db } from "@/config/database";
 import { events, tickets } from "@shared/schema";
 import { AppError } from "@/middleware/error.middleware";
 import { validateTicketQr } from "@/lib/qr/validate-ticket-qr";
+
+async function assertOwnedByOrganizer(eventId: string, organizerProfileId: string) {
+  const [event] = await db.select().from(events).where(eq(events.id, eventId)).limit(1);
+  if (!event) throw AppError.notFound("Event not found");
+  if (event.createdBy !== organizerProfileId) {
+    throw AppError.forbidden("This ticket belongs to an event you do not own");
+  }
+}
 
 export async function checkInTicket(qrToken: string, organizerProfileId: string) {
   let ticket;
@@ -26,10 +26,31 @@ export async function checkInTicket(qrToken: string, organizerProfileId: string)
     throw err;
   }
 
-  const [event] = await db.select().from(events).where(eq(events.id, ticket.eventId)).limit(1);
-  if (!event) throw AppError.notFound("Event not found");
-  if (event.createdBy !== organizerProfileId) {
-    throw AppError.forbidden("This ticket belongs to an event you do not own");
+  await assertOwnedByOrganizer(ticket.eventId, organizerProfileId);
+
+  const [updated] = await db
+    .update(tickets)
+    .set({ checkedIn: true, checkedInAt: new Date(), status: "used" })
+    .where(eq(tickets.id, ticket.id))
+    .returning();
+
+  return updated;
+}
+
+/** Manual entry fallback — checks in by the human-typeable check-in code instead of scanning the JWT QR. */
+export async function checkInByCode(code: string, organizerProfileId: string) {
+  const normalized = code.trim().toUpperCase();
+
+  const [ticket] = await db.select().from(tickets).where(eq(tickets.checkInCode, normalized)).limit(1);
+  if (!ticket) throw AppError.notFound("Ticket not found for that code");
+
+  await assertOwnedByOrganizer(ticket.eventId, organizerProfileId);
+
+  if (ticket.status === "transferred") {
+    throw new AppError("This ticket has been transferred and is no longer valid", 409, "TICKET_TRANSFERRED");
+  }
+  if (ticket.checkedIn) {
+    throw new AppError("This ticket has already been checked in", 409, "TICKET_ALREADY_USED");
   }
 
   const [updated] = await db

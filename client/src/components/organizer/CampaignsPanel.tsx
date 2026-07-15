@@ -1,180 +1,72 @@
-import React, { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useUserRole } from '@/hooks/useUserRole';
-import { useToast } from '@/hooks/use-toast';
-import { Send } from 'lucide-react';
+// client/src/components/organizer/CampaignsPanel.tsx
+import React, { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Send } from "lucide-react";
+import { useCampaigns, useCreateCampaign } from "@/hooks/api/useOrganizer";
 
-interface Campaign {
-  id: string;
-  subject: string;
-  message: string;
-  type: string;
-  status: string;
-  sent_at: string | null;
-  recipient_count: number;
-  created_at: string;
-}
+interface Props { eventId: string | null; }
 
-interface CampaignsPanelProps {
-  eventId: string | null;
-}
-
-export const CampaignsPanel: React.FC<CampaignsPanelProps> = ({ eventId }) => {
-  const { user } = useUserRole();
-  const { toast } = useToast();
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [loading, setLoading] = useState(false);
+export const CampaignsPanel: React.FC<Props> = ({ eventId }) => {
+  const { data: campaigns, isLoading } = useCampaigns(eventId);
+  const createCampaign = useCreateCampaign(eventId);
   const [showCreate, setShowCreate] = useState(false);
-  const [subject, setSubject] = useState('');
-  const [message, setMessage] = useState('');
-  const [type, setType] = useState<'email' | 'sms'>('email');
-  const [sending, setSending] = useState(false);
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState("");
+  const [type, setType] = useState<"email" | "sms">("email");
 
-  useEffect(() => {
-    if (eventId && user) fetchCampaigns();
-  }, [eventId, user]);
+  if (!eventId) return <div className="py-12 text-center text-muted-foreground">Select an event from the Events tab first</div>;
 
-  const fetchCampaigns = async () => {
-    if (!eventId || !user) return;
-    setLoading(true);
-    const { data } = await supabase
-      .from('campaigns')
-      .select('*')
-      .eq('event_id', eventId)
-      .eq('created_by', user.id)
-      .order('created_at', { ascending: false });
-
-    setCampaigns(data || []);
-    setLoading(false);
-  };
-
-  const handleSend = async () => {
-    if (!eventId || !user || !subject.trim() || !message.trim()) {
-      toast({ title: 'Error', description: 'Subject and message are required', variant: 'destructive' });
-      return;
-    }
-
-    setSending(true);
-
-    // Get recipient count
-    const { count } = await supabase
-      .from('event_registrations')
-      .select('*', { count: 'exact', head: true })
-      .eq('event_id', eventId);
-
-    const { error } = await supabase.from('campaigns').insert({
-      event_id: eventId,
-      created_by: user.id,
-      subject: subject.trim(),
-      message: message.trim(),
-      type,
-      status: 'sent',
-      sent_at: new Date().toISOString(),
-      recipient_count: count || 0,
+  const handleSend = () => {
+    if (!subject.trim() || !message.trim()) return;
+    createCampaign.mutate({ subject: subject.trim(), message: message.trim(), type }, {
+      onSuccess: () => { setSubject(""); setMessage(""); setShowCreate(false); },
     });
-
-    if (error) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
-    } else {
-      toast({ title: 'Campaign sent!', description: `Sent to ${count || 0} recipients` });
-      // Trigger edge function for actual sending
-      try {
-        await supabase.functions.invoke('send-campaign', {
-          body: { eventId, subject: subject.trim(), message: message.trim(), type },
-        });
-      } catch (e) {
-        // Campaign record saved even if edge fn fails
-      }
-      setSubject('');
-      setMessage('');
-      setShowCreate(false);
-      fetchCampaigns();
-    }
-    setSending(false);
   };
-
-  if (!eventId) {
-    return <div className="py-12 text-center text-gray-500">Select an event from the Events tab first</div>;
-  }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-medium">Campaigns</h2>
-        <button
-          onClick={() => setShowCreate(!showCreate)}
-          className="bg-[#1A1A1A] text-white px-4 py-2 text-[11px] uppercase font-medium hover:bg-[#FA76FF] hover:text-black transition-colors"
-        >
-          {showCreate ? 'Cancel' : 'New Campaign'}
-        </button>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">Campaigns</h2>
+        <Button variant={showCreate ? "outline" : "default"} onClick={() => setShowCreate(!showCreate)}>
+          {showCreate ? "Cancel" : "New Campaign"}
+        </Button>
       </div>
 
       {showCreate && (
-        <div className="border border-black p-6 mb-6 space-y-4">
-          <div className="grid grid-cols-2 gap-0">
-            <button
-              onClick={() => setType('email')}
-              className={`px-4 py-2 text-[11px] uppercase font-medium border ${
-                type === 'email' ? 'bg-[#1A1A1A] text-white' : 'bg-white text-black border-black'
-              }`}
-            >
-              Email
-            </button>
-            <button
-              onClick={() => setType('sms')}
-              className={`px-4 py-2 text-[11px] uppercase font-medium border border-l-0 ${
-                type === 'sms' ? 'bg-[#1A1A1A] text-white' : 'bg-white text-black border-black'
-              }`}
-            >
-              SMS
-            </button>
-          </div>
-
-          <input
-            type="text"
-            placeholder="Subject"
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            className="w-full border border-black px-4 py-3 text-sm focus:outline-none"
-          />
-          <textarea
-            placeholder="Message"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            rows={6}
-            className="w-full border border-black px-4 py-3 text-sm focus:outline-none resize-none"
-          />
-          <button
-            onClick={handleSend}
-            disabled={sending}
-            className="flex items-center gap-2 bg-[#FA76FF] text-black px-6 py-3 text-[11px] uppercase font-medium hover:bg-[#ff8fff] transition-colors disabled:opacity-50"
-          >
-            <Send size={14} /> {sending ? 'Sending...' : 'Send to All Registrants'}
-          </button>
-        </div>
+        <Card>
+          <CardContent className="p-6 space-y-4">
+            <div className="grid grid-cols-2 gap-0 w-fit">
+              <button onClick={() => setType("email")} className={`px-4 py-2 text-xs uppercase font-medium border rounded-l ${type === "email" ? "bg-foreground text-background border-foreground" : "bg-background border-border"}`}>Email</button>
+              <button onClick={() => setType("sms")} className={`px-4 py-2 text-xs uppercase font-medium border border-l-0 rounded-r ${type === "sms" ? "bg-foreground text-background border-foreground" : "bg-background border-border"}`}>SMS</button>
+            </div>
+            <input type="text" placeholder="Subject" value={subject} onChange={(e) => setSubject(e.target.value)} className="w-full border border-border rounded px-4 py-3 text-sm bg-background" />
+            <textarea placeholder="Message" value={message} onChange={(e) => setMessage(e.target.value)} rows={6} className="w-full border border-border rounded px-4 py-3 text-sm bg-background resize-none" />
+            <Button onClick={handleSend} disabled={createCampaign.isPending}>
+              <Send size={14} className="mr-2" /> {createCampaign.isPending ? "Sending..." : "Send to All Registrants"}
+            </Button>
+          </CardContent>
+        </Card>
       )}
 
-      {loading ? (
-        <div className="py-12 text-center">Loading campaigns...</div>
-      ) : campaigns.length === 0 ? (
-        <div className="py-12 text-center text-gray-500">No campaigns yet</div>
+      {isLoading ? (
+        <div className="py-12 text-center text-muted-foreground">Loading campaigns...</div>
+      ) : !campaigns || campaigns.length === 0 ? (
+        <Card><CardContent className="py-12 text-center text-muted-foreground">No campaigns yet</CardContent></Card>
       ) : (
-        <div className="space-y-3">
-          {campaigns.map((campaign) => (
-            <div key={campaign.id} className="border border-black p-4 flex items-center justify-between">
-              <div>
-                <h3 className="font-medium text-sm">{campaign.subject}</h3>
-                <p className="text-[11px] text-gray-500 mt-1">
-                  {campaign.type.toUpperCase()} • {campaign.recipient_count} recipients •{' '}
-                  {campaign.sent_at ? new Date(campaign.sent_at).toLocaleDateString() : 'Draft'}
-                </p>
-              </div>
-              <span className={`text-[11px] uppercase px-2 py-1 ${
-                campaign.status === 'sent' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
-              }`}>
-                {campaign.status}
-              </span>
-            </div>
+        <div className="space-y-2">
+          {campaigns.map((c) => (
+            <Card key={c.id}>
+              <CardContent className="p-4 flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium text-sm">{c.subject}</h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {c.type.toUpperCase()} · {c.recipientCount} recipients · {c.sentAt ? new Date(c.sentAt).toLocaleDateString() : "Draft"}
+                  </p>
+                </div>
+                <span className="text-xs uppercase px-2 py-1 rounded bg-green-500/10 text-green-700">{c.status}</span>
+              </CardContent>
+            </Card>
           ))}
         </div>
       )}

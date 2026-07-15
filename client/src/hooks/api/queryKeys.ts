@@ -1,13 +1,3 @@
-/**
- * src/hooks/api/queryKeys.ts
- * -------------------------------------------------------------------------
- * One place for every TanStack Query key used against our backend. Using
- * factories like this (instead of ad-hoc arrays in each hook) means
- * `queryClient.invalidateQueries({ queryKey: queryKeys.events.all })`
- * always matches every related query, and renaming a resource means
- * changing it in exactly one place.
- * -------------------------------------------------------------------------
- */
 export const queryKeys = {
   events: {
     all: ["events"] as const,
@@ -36,8 +26,7 @@ export const queryKeys = {
     revenueChart: () => ["hotel", "charts", "revenue"] as const,
     bookings: {
       all: ["hotel", "bookings"] as const,
-     list: <T extends object>(params?: T) =>
-  ["hotel", "bookings", "list", params ?? {}] as const,
+      list: <T extends object>(params?: T) => ["hotel", "bookings", "list", params ?? {}] as const,
       detail: (id: string) => ["hotel", "bookings", "detail", id] as const,
     },
     roomTypes: () => ["hotel", "room-types"] as const,
@@ -45,5 +34,16 @@ export const queryKeys = {
     analytics: () => ["hotel", "analytics"] as const,
     payouts: () => ["hotel", "payouts"] as const,
     notifications: (page?: number) => ["hotel", "notifications", page ?? 1] as const,
+  },
+  organizer: {
+    overview: () => ["organizer", "overview"] as const,
+    events: () => ["organizer", "events"] as const,
+    analytics: (eventId: string, params?: Record<string, unknown>) =>
+      ["organizer", "analytics", eventId, params ?? {}] as const,
+    profile: () => ["organizer", "profile"] as const,
+    subscription: () => ["organizer", "subscription"] as const,
+    campaigns: (eventId: string) => ["organizer", "campaigns", eventId] as const,
+    guests: (eventId: string, params?: Record<string, unknown>) =>
+      ["organizer", "guests", eventId, params ?? {}] as const,
   },
 } as const;
