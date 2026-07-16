@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { User } from '@supabase/supabase-js';
+import { useAuth } from '@/context/AuthContext';
 import { Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { SEOHead } from '@/components/SEOHead';
+import { supabase } from '@/integrations/supabase/client';
+
 
 interface Event {
   id: string;
@@ -33,6 +34,7 @@ const EventCard = ({
     }
   };
   
+
   return (
     <div 
       className="relative cursor-pointer group"
@@ -71,42 +73,31 @@ const EventCard = ({
 };
 
 const MyEvents = () => {
-  const [user, setUser] = useState<User | null>(null);
+  const { user, loading: authLoading } = useAuth();
   const [createdEvents, setCreatedEvents] = useState<Event[]>([]);
   const [registeredEvents, setRegisteredEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'created' | 'registered'>('created');
   const [slideStyle, setSlideStyle] = useState({ width: 0, transform: 'translateX(0)' });
+  
   const createdRef = useRef<HTMLButtonElement>(null);
   const registeredRef = useRef<HTMLButtonElement>(null);
   const navigate = useNavigate();
 
+  // Redirect if not authenticated
   useEffect(() => {
-    // Check auth state
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
-        navigate('/');
-        return;
-      }
-      setUser(session.user);
-    });
+    if (!authLoading && !user) {
+      navigate('/');
+    }
+  }, [user, authLoading, navigate]);
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!session) {
-        navigate('/');
-        return;
-      }
-      setUser(session.user);
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
-
+  // Fetch events when user is available
   useEffect(() => {
     if (user) {
       fetchMyEvents();
     }
   }, [user]);
+
 
   useEffect(() => {
     const updateSlidePosition = () => {
@@ -134,29 +125,48 @@ const MyEvents = () => {
     setLoading(true);
     try {
       // Fetch created events
-      const { data: created, error: createdError } = await supabase
-        .from('events')
-        .select('id, title, date, time, background_image_url')
-        .eq('created_by', user.id)
-        .order('target_date', { ascending: true });
+      const { data, error } = await supabase
+  .from('events')
+  .select(`
+    id,
+    title,
+    starts_at,
+    start_time,
+    background_image_url
+  `)
+  .eq('created_by', user.id)
+  .order('starts_at', { ascending: true });
 
-      if (createdError) throw createdError;
-      setCreatedEvents(created || []);
+if (error) throw error;
+
+setCreatedEvents(
+  (data ?? []).map(event => ({
+    id: event.id,
+    title: event.title,
+    date: new Date(event.starts_at).toLocaleDateString(), // format however you like
+    time: event.start_time,
+    background_image_url: event.background_image_url,
+  }))
+);
+      
 
       // Fetch registered events
-      const { data: registrations, error: regError } = await supabase
+        const { data: registrations, error: regError } = await supabase
         .from('event_registrations')
         .select(`
           event_id,
           events (
             id,
             title,
-            date,
-            time,
+            starts_at,
+            start_time,
             background_image_url
           )
         `)
         .eq('user_id', user.id);
+      
+
+        console.log(registrations)
 
       if (regError) throw regError;
       
@@ -167,6 +177,7 @@ const MyEvents = () => {
       setRegisteredEvents(registeredEventsData);
     } catch (error) {
       if (import.meta.env.DEV) console.error('Error fetching events:', error);
+      toast.error('Failed to load events');
     } finally {
       setLoading(false);
     }
@@ -190,6 +201,11 @@ const MyEvents = () => {
   };
 
   const displayedEvents = activeTab === 'created' ? createdEvents : registeredEvents;
+
+  // Show loading while auth is being determined
+  if (authLoading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
 
   return (
     <>
@@ -242,8 +258,8 @@ const MyEvents = () => {
               ) : displayedEvents.length === 0 ? (
                 <div className="col-span-full text-center py-12">
                   {activeTab === 'created' 
-                    ? 'You haven\'t created any events yet' 
-                    : 'You haven\'t registered for any events yet'}
+                    ? "You haven't created any events yet" 
+                    : "You haven't registered for any events yet"}
                 </div>
               ) : (
                 displayedEvents.map((event) => (
