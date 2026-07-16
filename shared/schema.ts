@@ -6,6 +6,9 @@ import { relations } from "drizzle-orm";
 export type OrderItem = {
   attendeeName: string;
   attendeeEmail: string;
+  /** Web orders can mix tiers per attendee; WhatsApp orders omit this and fall back to the order's single tierId. */
+  tierId?: string;
+  unitPrice?: number;
 };
 
 import { createInsertSchema } from "drizzle-zod";

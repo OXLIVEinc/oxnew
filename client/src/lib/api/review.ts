@@ -159,3 +159,36 @@ export async function declineTransferClaim(code: string): Promise<{ ok: true }> 
     throw new Error(errorMessage(err));
   }
 }
+
+
+
+export interface AttendeeItem {
+  attendeeName: string;
+  attendeeEmail: string;
+  tierId?: string;
+}
+
+export interface EventInfo {
+  id: string;
+  title: string;
+  address: string;
+  startsAt: string;
+  endsAt: string;
+  backgroundImageUrl: string | null;
+  ticketTiers?: { id: string; name: string; price: string }[];
+}
+
+export interface TicketOrder {
+  id: string;
+  reference: string;
+  eventId: string;
+  tierId: string;
+  quantity: number;
+  unitPrice: string;
+  amount: string;
+  status: string;
+  expiresAt: string | null;
+  createdAt: string;
+  subtotal: string;
+  items?: AttendeeItem[] | null;
+}

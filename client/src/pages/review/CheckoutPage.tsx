@@ -28,15 +28,23 @@ export default function CheckoutPage() {
   console.log(import.meta.env.VITE_API_URL)
 
   useEffect(() => {
-    if (!orderId) return;
-    fetchCheckout(orderId)
-      .then(({ order, event }) => {
-        setOrder(order);
-        setEvent(event);
-        setAttendees(Array.from({ length: order.quantity }, () => ({ attendeeName: '', attendeeEmail: '' })));
-      })
-      .catch((err: Error) => setLoadError(err.message));
-  }, [orderId]);
+  if (!orderId) return;
+  fetchCheckout(orderId)
+    .then(({ order, event }) => {
+      setOrder(order);
+      setEvent(event);
+      const initial =
+        order.items && order.items.length === order.quantity
+          ? order.items.map((it) => ({
+              attendeeName: it.attendeeName || '',
+              attendeeEmail: it.attendeeEmail || '',
+              tierId: it.tierId,
+            }))
+          : Array.from({ length: order.quantity }, () => ({ attendeeName: '', attendeeEmail: '' }));
+      setAttendees(initial);
+    })
+    .catch((err: Error) => setLoadError(err.message));
+}, [orderId]);
 
   if (loadError) {
     return (
@@ -151,27 +159,35 @@ export default function CheckoutPage() {
         }
       />
 
-      <SectionCard heading="Attendee details">
-        {attendees.map((attendee, i) => (
-          <div key={i}>
-            <Field
-              id={`name-${i}`}
-              label={`Guest ${i + 1} name`}
-              value={attendee.attendeeName}
-              placeholder="Full name"
-              onChange={(e) => updateAttendee(i, 'attendeeName', e.target.value)}
-            />
-            <Field
-              id={`email-${i}`}
-              type="email"
-              label={`Guest ${i + 1} email`}
-              value={attendee.attendeeEmail}
-              placeholder="name@example.com"
-              onChange={(e) => updateAttendee(i, 'attendeeEmail', e.target.value)}
-            />
-          </div>
-        ))}
-      </SectionCard>
+     <SectionCard heading="Attendee details">
+  {attendees.map((attendee, i) => {
+    const tier = event.ticketTiers?.find((t) => t.id === attendee.tierId);
+    return (
+      <div key={i}>
+        {tier && (
+          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-[#FA76FF]">
+            {tier.name} — {Number(tier.price) > 0 ? naira(Number(tier.price)) : 'Free'}
+          </p>
+        )}
+        <Field
+          id={`name-${i}`}
+          label={`Guest ${i + 1} name`}
+          value={attendee.attendeeName}
+          placeholder="Full name"
+          onChange={(e) => updateAttendee(i, 'attendeeName', e.target.value)}
+        />
+        <Field
+          id={`email-${i}`}
+          type="email"
+          label={`Guest ${i + 1} email`}
+          value={attendee.attendeeEmail}
+          placeholder="name@example.com"
+          onChange={(e) => updateAttendee(i, 'attendeeEmail', e.target.value)}
+        />
+      </div>
+    );
+  })}
+</SectionCard>
 
       {submitError && (
         <div className="mt-4">

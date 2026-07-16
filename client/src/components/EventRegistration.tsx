@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { createEventOrder } from '@/lib/api/registrations';
+import { getApiErrorMessage } from '@/lib/api/http';
 import { Plus, X } from 'lucide-react';
 
 interface TicketTier {
@@ -14,17 +17,14 @@ interface TicketTier {
   is_sold_out?: boolean;
 }
 
-interface Attendee {
-  name: string;
-  email: string;
-  phone: string;
+interface AttendeeSelection {
   tierId: string;
   tierName: string;
 }
 
 interface EventRegistrationProps {
   eventId: string;
-  isPaid:boolean;
+  isPaid: boolean;
   onRegister: () => void;
   isRegistered: boolean;
   className?: string;
@@ -36,7 +36,6 @@ interface EventRegistrationProps {
 
 export const EventRegistration: React.FC<EventRegistrationProps> = ({
   eventId,
-  isPaid,
   onRegister,
   isRegistered: initialIsRegistered,
   className = "",
@@ -46,18 +45,15 @@ export const EventRegistration: React.FC<EventRegistrationProps> = ({
   selectedTierId,
 }) => {
   const { authUser: user, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
   const [isRegistered, setIsRegistered] = useState(initialIsRegistered);
   const [loading, setLoading] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
-  const [attendees, setAttendees] = useState<Attendee[]>([]);
+  const [attendees, setAttendees] = useState<AttendeeSelection[]>([]);
   const { toast } = useToast();
 
-  // Check registration status when user or event changes
   useEffect(() => {
-    if (!user?.id) {
-      setIsRegistered(false);
-      return;
-    }
+    if (!user?.id) { setIsRegistered(false); return; }
     checkRegistration(user.id);
   }, [user?.id, eventId]);
 
@@ -68,7 +64,6 @@ export const EventRegistration: React.FC<EventRegistrationProps> = ({
       .eq('user_id', userId)
       .eq('event_id', eventId)
       .maybeSingle();
-
     setIsRegistered(!!data);
   };
 
@@ -77,7 +72,6 @@ export const EventRegistration: React.FC<EventRegistrationProps> = ({
     const now = Date.now();
     const distance = targetDate.getTime() - now;
     const oneHour = 1000 * 60 * 60;
-
     if (distance < -oneHour) return 'ended';
     if (distance >= -oneHour && distance <= oneHour) return 'happening';
     return 'upcoming';
@@ -86,269 +80,68 @@ export const EventRegistration: React.FC<EventRegistrationProps> = ({
   const eventStatus = getEventStatus();
   const isPastEvent = eventStatus === 'ended';
 
+  const defaultTier = () => ticketTiers.find((t) => t.id === selectedTierId) || ticketTiers[0];
+
   const openBookingModal = () => {
     if (isPastEvent) {
-      toast({
-        title: 'Event has ended',
-        description: 'You cannot register for past events',
-        variant: 'destructive',
-      });
+      toast({ title: 'Event has ended', description: 'You cannot register for past events', variant: 'destructive' });
       return;
     }
-
     if (!user) {
       if (onAuthRequired) onAuthRequired();
-      else {
-        toast({
-          title: 'Sign in required',
-          description: 'Please sign in to register',
-          variant: 'destructive',
-        });
-      }
+      else toast({ title: 'Sign in required', description: 'Please sign in to register', variant: 'destructive' });
       return;
     }
 
-    const defaultTier = ticketTiers.find(t => t.id === selectedTierId) || ticketTiers[0];
-
-    setAttendees([{
-      name: (user.user_metadata?.display_name as string) || '',
-      email: user.email || '',
-      phone: (user.user_metadata?.phone as string) || '',
-      tierId: defaultTier?.id || '',
-      tierName: defaultTier?.name || 'General',
-    }]);
-
+    const tier = defaultTier();
+    setAttendees([{ tierId: tier?.id || '', tierName: tier?.name || 'General' }]);
     setShowBookingModal(true);
   };
 
   const addAttendee = () => {
     if (attendees.length >= 20) {
-      toast({
-        title: 'Maximum reached',
-        description: 'You can purchase up to 20 tickets per order',
-        variant: 'destructive',
-      });
+      toast({ title: 'Maximum reached', description: 'You can select up to 20 tickets per order', variant: 'destructive' });
       return;
     }
-
-    const defaultTier = ticketTiers.find(t => t.id === selectedTierId) || ticketTiers[0];
-    setAttendees([...attendees, {
-      name: '',
-      email: '',
-      phone: '',
-      tierId: defaultTier?.id || '',
-      tierName: defaultTier?.name || 'General',
-    }]);
+    const tier = defaultTier();
+    setAttendees((prev) => [...prev, { tierId: tier?.id || '', tierName: tier?.name || 'General' }]);
   };
 
   const removeAttendee = (index: number) => {
     if (attendees.length <= 1) return;
-    setAttendees(attendees.filter((_, i) => i !== index));
+    setAttendees((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const updateAttendee = (index: number, field: keyof Attendee, value: string) => {
-    const updated = [...attendees];
-    updated[index] = { ...updated[index], [field]: value };
-
-    if (field === 'tierId') {
-      const tier = ticketTiers.find(t => t.id === value);
-      updated[index].tierName = tier?.name || 'General';
-    }
-
-    setAttendees(updated);
+  const updateAttendeeTier = (index: number, tierId: string) => {
+    const tier = ticketTiers.find((t) => t.id === tierId);
+    setAttendees((prev) => prev.map((a, i) => (i === index ? { tierId, tierName: tier?.name || 'General' } : a)));
   };
 
   const totalPrice = attendees.reduce((sum, a) => {
-    const tier = ticketTiers.find(t => t.id === a.tierId);
+    const tier = ticketTiers.find((t) => t.id === a.tierId);
     return sum + (tier?.price || 0);
   }, 0);
 
-  const validateAttendees = (): boolean => {
-    for (let i = 0; i < attendees.length; i++) {
-      const a = attendees[i];
-      if (!a.name.trim()) {
-        toast({ title: 'Missing info', description: `Please enter name for attendee ${i + 1}`, variant: 'destructive' });
-        return false;
-      }
-      if (!a.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(a.email)) {
-        toast({ title: 'Invalid email', description: `Please enter a valid email for attendee ${i + 1}`, variant: 'destructive' });
-        return false;
-      }
-      if (!a.phone.trim()) {
-        toast({ title: 'Missing phone', description: `Please enter phone for attendee ${i + 1}`, variant: 'destructive' });
-        return false;
-      }
-    }
-    return true;
-  };
-
-  const handleFreeBooking = async () => {
-    if (!user || !validateAttendees()) return;
-
-    setLoading(true);
-    try {
-      const orderGroupId = crypto.randomUUID();
-
-      // Register user for the event (if not already)
-      if (!isRegistered) {
-        const { error: regError } = await supabase
-          .from('event_registrations')
-          .insert({
-            user_id: user.id,
-            event_id: eventId,
-            ticket_tier_id: attendees[0].tierId || null,
-          });
-        if (regError) throw regError;
-
-        // Clean up auto-created ticket from trigger
-        const { data: autoTickets } = await supabase
-          .from('tickets')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('event_id', eventId)
-          .is('attendee_name', null)
-          .order('created_at', { ascending: false })
-          .limit(1);
-
-        if (autoTickets?.length) {
-          await supabase.from('tickets').delete().eq('id', autoTickets[0].id);
-        }
-      }
-
-      const ticketsToInsert = attendees.map(a => ({
-        event_id: eventId,
-        user_id: user.id,
-        qr_code: crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, ''),
-        ticket_tier_id: a.tierId || null,
-        attendee_name: a.name,
-        attendee_email: a.email,
-        attendee_phone: a.phone,
-        order_group_id: orderGroupId,
-      }));
-
-      const { error: ticketError } = await supabase.from('tickets').insert(ticketsToInsert);
-      if (ticketError) throw ticketError;
-
-      // Update sold counts
-      const tierCounts: Record<string, number> = {};
-      attendees.forEach(a => {
-        if (a.tierId) tierCounts[a.tierId] = (tierCounts[a.tierId] || 0) + 1;
-      });
-
-      for (const [tierId, count] of Object.entries(tierCounts)) {
-        const tier = ticketTiers.find(t => t.id === tierId);
-        if (tier) {
-          await supabase
-            .from('ticket_tiers')
-            .update({ sold: tier.sold + count })
-            .eq('id', tierId);
-        }
-      }
-
-      setIsRegistered(true);
-      setShowBookingModal(false);
-      onRegister();
-
-      toast({
-        title: `${attendees.length} free ticket${attendees.length > 1 ? 's' : ''} booked!`,
-        description: 'Check your dashboard to view and download tickets.',
-      });
-    } catch (error: any) {
-      toast({ title: 'Booking failed', description: error.message, variant: 'destructive' });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handlePaystackPayment = async () => {
-    if (!user || !validateAttendees()) return;
-
-    if (totalPrice <= 0) {
-      toast({
-        title: 'Payment could not be initialised',
-        description: 'Please try again.',
-        variant: 'destructive',
-      });
+  const handleBookTickets = async () => {
+    if (!user) return;
+    if (attendees.some((a) => !a.tierId)) {
+      toast({ title: 'Select a ticket type', description: 'Please choose a ticket for every attendee', variant: 'destructive' });
       return;
     }
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('initiate-ticket-payment', {
-        body: {
-          email: user.email,
-          amount: totalPrice,
-          eventId,
-          attendees: attendees.map(a => ({
-            name: a.name,
-            email: a.email,
-            phone: a.phone,
-            tierId: a.tierId,
-          })),
-          currency: 'NGN',
-          callbackUrl: `${window.location.origin}/event/${eventId}?payment=verify`,
-        },
+      const order = await createEventOrder({
+        eventId,
+        selections: attendees.map((a) => ({ tierId: a.tierId })),
       });
-
-      if (error) throw error;
-
-      if (data?.authorization_url) {
-        sessionStorage.setItem('paystack_reference', data.reference);
-        sessionStorage.setItem('paystack_event_id', eventId);
-        window.location.href = data.authorization_url;
-      } else {
-        throw new Error('No authorization URL returned');
-      }
+      setShowBookingModal(false);
+      onRegister();
+      navigate(`/checkout/${order.id}`);
     } catch (error: any) {
-      toast({ title: 'Payment failed', description: error.message, variant: 'destructive' });
+      toast({ title: 'Booking failed', description: getApiErrorMessage(error, error.message), variant: 'destructive' });
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Handle Paystack callback
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const reference = params.get('reference') || sessionStorage.getItem('paystack_reference');
-    const storedEventId = sessionStorage.getItem('paystack_event_id');
-
-    if (params.get('payment') === 'verify' && reference && storedEventId === eventId) {
-      sessionStorage.removeItem('paystack_reference');
-      sessionStorage.removeItem('paystack_event_id');
-      window.history.replaceState({}, '', window.location.pathname);
-
-      const verifyPayment = async () => {
-        setLoading(true);
-        try {
-          const { data, error } = await supabase.functions.invoke('verify-ticket-payment', {
-            body: { reference },
-          });
-          if (error) throw error;
-
-          setIsRegistered(true);
-          setShowBookingModal(false);
-          onRegister();
-
-          toast({
-            title: 'Payment confirmed!',
-            description: `${data.tickets} ticket(s) have been issued. Check your dashboard.`,
-          });
-        } catch (err: any) {
-          toast({ title: 'Verification failed', description: err.message, variant: 'destructive' });
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      verifyPayment();
-    }
-  }, [eventId, onRegister, toast]);
-
-  const handleBookTickets = () => {
-    if (totalPrice > 0 && isPaid === false) {
-      handlePaystackPayment();
-    } else {
-      handleFreeBooking();
     }
   };
 
@@ -379,22 +172,25 @@ export const EventRegistration: React.FC<EventRegistrationProps> = ({
         )}
       </div>
 
-      {/* Booking Modal */}
       {showBookingModal && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-foreground/60 p-4">
           <div className="bg-background w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl">
             <div className="flex items-center justify-between px-6 py-4 border-b border-border sticky top-0 bg-background z-10">
-              <h2 className="text-lg font-medium">Book Tickets (max 20)</h2>
+              <h2 className="text-lg font-medium">Select Tickets (max 20)</h2>
               <button onClick={() => setShowBookingModal(false)} className="p-1 hover:bg-muted rounded">
                 <X size={20} />
               </button>
             </div>
 
             <div className="p-6 space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Each attendee can have their own ticket type — choose the ticket, then enter names & pay on the next screen.
+              </p>
+
               {attendees.map((attendee, index) => (
                 <div key={index} className="border border-border p-4 space-y-3 rounded-lg">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] uppercase font-medium">Attendee {index + 1}</span>
+                    <span className="text-[11px] uppercase font-medium">Ticket {index + 1}</span>
                     {attendees.length > 1 && (
                       <button onClick={() => removeAttendee(index)} className="text-destructive hover:text-destructive/80">
                         <X size={16} />
@@ -402,44 +198,19 @@ export const EventRegistration: React.FC<EventRegistrationProps> = ({
                     )}
                   </div>
 
-                  <input
-                    type="text"
-                    placeholder="Full name *"
-                    value={attendee.name}
-                    onChange={(e) => updateAttendee(index, 'name', e.target.value)}
-                    className="w-full px-3 py-2.5 text-sm border border-border focus:outline-none focus:border-foreground bg-background rounded"
-                  />
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <input
-                      type="email"
-                      placeholder="Email *"
-                      value={attendee.email}
-                      onChange={(e) => updateAttendee(index, 'email', e.target.value)}
-                      className="w-full px-3 py-2.5 text-sm border border-border focus:outline-none focus:border-foreground bg-background rounded"
-                    />
-                    <input
-                      type="tel"
-                      placeholder="Phone *"
-                      value={attendee.phone}
-                      onChange={(e) => updateAttendee(index, 'phone', e.target.value)}
-                      className="w-full px-3 py-2.5 text-sm border border-border focus:outline-none focus:border-foreground bg-background rounded"
-                    />
-                  </div>
-
                   {ticketTiers.length > 0 && (
                     <select
                       value={attendee.tierId}
-                      onChange={(e) => updateAttendee(index, 'tierId', e.target.value)}
+                      onChange={(e) => updateAttendeeTier(index, e.target.value)}
                       className="w-full px-3 py-2.5 text-sm border border-border focus:outline-none bg-background rounded"
                     >
-                      {ticketTiers.map(tier => {
+                      {ticketTiers.map((tier) => {
                         const avail = tier.quantity - tier.sold;
-                        const isSoldOut = tier.is_sold_out || avail <= 0;
+                        const isSoldOut = tier.is_sold_out || (tier.quantity > 0 && avail <= 0);
                         return (
                           <option key={tier.id} value={tier.id} disabled={isSoldOut}>
-                            {tier.name} — {tier.price > 0 ? `₦${tier.price}` : 'Free'} 
-                            {isSoldOut ? '(Sold Out)' : `(${avail} left)`}
+                            {tier.name} — {tier.price > 0 ? `₦${tier.price}` : 'Free'}{' '}
+                            {isSoldOut ? '(Sold Out)' : ''}
                           </option>
                         );
                       })}
@@ -453,7 +224,7 @@ export const EventRegistration: React.FC<EventRegistrationProps> = ({
                 disabled={attendees.length >= 20}
                 className="w-full flex items-center justify-center gap-2 py-3 border border-dashed border-border text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50 rounded"
               >
-                <Plus size={16} /> Add Another Attendee ({attendees.length}/20)
+                <Plus size={16} /> Add Another Ticket ({attendees.length}/20)
               </button>
             </div>
 
@@ -474,7 +245,7 @@ export const EventRegistration: React.FC<EventRegistrationProps> = ({
                 disabled={loading}
                 className="bg-[hsl(300,100%,73%)] text-foreground px-8 py-3 text-[13px] uppercase font-semibold rounded-lg hover:bg-foreground hover:text-background transition-all disabled:opacity-50 active:scale-95"
               >
-                {loading ? 'Processing...' : totalPrice > 0 ? 'Pay Now' : 'Confirm Booking'}
+                {loading ? 'Processing...' : 'Continue to review'}
               </button>
             </div>
           </div>

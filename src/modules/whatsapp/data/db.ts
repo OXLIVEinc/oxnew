@@ -417,85 +417,6 @@ export async function markTicketOrderPaid(orderId: string): Promise<TicketOrderR
   return updated;
 }
 
-/**
- * Generates real ticket assets (signed QR + branded card image, uploaded
- * and publicly reachable) for every attendee on a paid order, then writes
- * the tickets AND fires an event_registrations row per attendee — every
- * completed ticket order also registers the buyer for the event.
- */
-export async function createTicketsForOrder(order: TicketOrderRow): Promise<TicketRow[]> {
-  const items = (order.items || []) as OrderItem[];
-  if (items.length === 0) return [];
-
-  const [event, tier, buyerProfile] = await Promise.all([
-    getEventById(order.eventId),
-    db.select().from(schema.ticketTiers).where(eq(schema.ticketTiers.id, order.tierId)).limit(1).then((r) => r[0]),
-    getOrCreateProfile(order.phone),
-  ]);
-  if (!event) throw new Error("Event not found for order");
-
-  const tickets: TicketRow[] = [];
-
-  for (const item of items) {
-    // Insert first (without a real qrCode yet) so we have a stable ticket
-    // id to embed in the signed QR payload, then patch qrCode/checkInCode.
-    const [placeholder] = await db
-      .insert(schema.tickets)
-      .values({
-        orderId: order.id,
-        eventId: order.eventId,
-        tierId: order.tierId,
-        userId: buyerProfile.id,
-        attendeeName: item.attendeeName,
-        attendeeEmail: item.attendeeEmail,
-        qrCode: "",
-        checkInCode: "",
-        status: "valid" as const,
-      })
-      .returning();
-
-    const { checkInCode, qrCode } = await createTicketQr({
-      ticketId: placeholder.id,
-      eventId: event.id,
-      buyerName: item.attendeeName,
-      ticketTier: tier?.name ?? "General Admission",
-      eventName: event.title,
-      eventStartsAt: event.startsAt,
-      eventEndsAt: event.endsAt,
-      address: event.address,
-      banner: event.backgroundImageUrl,
-    });
-
-    const [finalTicket] = await db
-      .update(schema.tickets)
-      .set({ checkInCode, qrCode })
-      .where(eq(schema.tickets.id, placeholder.id))
-      .returning();
-
-    tickets.push(finalTicket);
-  }
-
-  // Limited tiers track stock via `sold` — unlimited tiers never need it,
-  // but incrementing it anyway is harmless (it just stays informational).
-  await db
-    .update(schema.ticketTiers)
-    .set({ sold: sql`${schema.ticketTiers.sold} + ${tickets.length}` })
-    .where(eq(schema.ticketTiers.id, order.tierId));
-
-  // One registration per attendee. Unique on (userId, eventId) — an
-  // attendee registering twice for the same event (e.g. buying a second
-  // ticket) is fine at the order/ticket level, but only counts once here.
-  await db
-    .insert(schema.eventRegistrations)
-    .values({
-      userId: buyerProfile.id,
-      eventId: order.eventId,
-      ticketTierId: order.tierId,
-    })
-    .onConflictDoNothing();
-
-  return tickets;
-}
 
 export async function getTicketsForOrder(orderId: string): Promise<TicketRow[]> {
   return db.select().from(schema.tickets).where(eq(schema.tickets.orderId, orderId));
@@ -1327,4 +1248,84 @@ export async function declineHotelOrderAndQueueRefund(
 
     return order;
   });
+}
+
+
+
+export async function createTicketsForOrder(order: TicketOrderRow): Promise<TicketRow[]> {
+  const items = (order.items || []) as OrderItem[];
+  if (items.length === 0) return [];
+
+  const event = await getEventById(order.eventId);
+  if (!event) throw new Error("Event not found for order");
+
+  const buyerProfileId = order.userId;
+
+
+  const tierIds = [...new Set(items.map((i) => i.tierId ?? order.tierId))];
+  const tierRows = await db.select().from(schema.ticketTiers).where(inArray(schema.ticketTiers.id, tierIds));
+  const tierMap = new Map(tierRows.map((t) => [t.id, t]));
+
+  const tickets: TicketRow[] = [];
+  const soldByTier = new Map<string, number>();
+
+  for (const item of items) {
+    const tierId = item.tierId ?? order.tierId;
+    const tier = tierMap.get(tierId);
+
+    const [placeholder] = await db
+      .insert(schema.tickets)
+      .values({
+        orderId: order.id,
+        eventId: order.eventId,
+        tierId,
+        userId: buyerProfileId,
+        attendeeName: item.attendeeName,
+        attendeeEmail: item.attendeeEmail,
+        qrCode: "",
+        checkInCode: "",
+        status: "valid" as const,
+      })
+      .returning();
+
+    const { checkInCode, qrCode } = await createTicketQr({
+      ticketId: placeholder.id,
+      eventId: event.id,
+      buyerName: item.attendeeName,
+      ticketTier: tier?.name ?? "General Admission",
+      eventName: event.title,
+      eventStartsAt: event.startsAt,
+      eventEndsAt: event.endsAt,
+      address: event.address,
+      banner: event.backgroundImageUrl,
+    });
+
+    const [finalTicket] = await db
+      .update(schema.tickets)
+      .set({ checkInCode, qrCode })
+      .where(eq(schema.tickets.id, placeholder.id))
+      .returning();
+
+    tickets.push(finalTicket);
+    soldByTier.set(tierId, (soldByTier.get(tierId) ?? 0) + 1);
+  }
+
+
+  for (const [tierId, count] of soldByTier) {
+    await db
+      .update(schema.ticketTiers)
+      .set({ sold: sql`${schema.ticketTiers.sold} + ${count}` })
+      .where(eq(schema.ticketTiers.id, tierId));
+  }
+
+  await db
+    .insert(schema.eventRegistrations)
+    .values({
+      userId: buyerProfileId,
+      eventId: order.eventId,
+      ticketTierId: order.tierId,
+    })
+    .onConflictDoNothing();
+
+  return tickets;
 }
