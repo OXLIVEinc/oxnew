@@ -55,6 +55,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const { toast } = useToast();
 
+  // Development-only error logging (safe for production)
+  const logError = useCallback((...args: any[]) => {
+    if (import.meta.env.DEV) {
+      console.error(...args);
+    }
+  }, []);
+
   const loadProfileAndRole = useCallback(async (userId: string) => {
     try {
       const { data: profileData, error: profileError } = await supabase
@@ -87,7 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       else if (roles.includes('guest')) setRole('guest');
       else setRole(null);
     } catch (err: any) {
-      console.error('Failed to load profile/role:', err);
+      logError('Failed to load profile/role:', err);
       toast({
         title: "Error loading profile",
         description: "Please refresh the page or try signing in again.",
@@ -96,7 +103,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setProfile(null);
       setRole(null);
     }
-  }, [toast]);
+  }, [toast, logError]);
 
   const hydrate = useCallback(
     async (nextSession: Session | null) => {
@@ -133,7 +140,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         description: "You have successfully signed in.",
       });
     } catch (err: any) {
-      console.error('Sign in error:', err);
+      logError('Sign in error:', err);
       toast({
         title: "Sign in failed",
         description: err.message || "Please check your credentials and try again.",
@@ -141,7 +148,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       });
       throw err;
     }
-  }, [toast]);
+  }, [toast, logError]);
 
   // ==================== Sign Up ====================
   const signUp = useCallback(async ({
@@ -213,7 +220,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         description: "Please check your email to verify your account.",
       });
     } catch (err: any) {
-      console.error('Sign up error:', err);
+      logError('Sign up error:', err);
       toast({
         title: "Sign up failed",
         description: err.message || "Something went wrong. Please try again.",
@@ -221,7 +228,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       });
       throw err;
     }
-  }, [toast]);
+  }, [toast, logError]);
 
   // Auth state listener
   useEffect(() => {
@@ -275,14 +282,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         title: "Signed out successfully",
       });
     } catch (err: any) {
-      console.error('Sign out error:', err);
+      logError('Sign out error:', err);
       toast({
         title: "Sign out failed",
         description: "Please try again.",
         variant: "destructive",
       });
     }
-  }, [toast]);
+  }, [toast, logError]);
 
   const refresh = useCallback(async () => {
     if (!authUser) return;
