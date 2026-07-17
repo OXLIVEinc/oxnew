@@ -1,3 +1,4 @@
+// src/pages/Discover.tsx (or wherever this file is)
 import React, { useState, useEffect, useMemo } from "react";
 import { Navbar } from "@/components/Navbar";
 import { SEOHead } from "@/components/SEOHead";
@@ -65,7 +66,6 @@ const TypewriterText: React.FC = () => {
   );
 };
 
-/** Does this event's date satisfy the selected date preset / custom range? */
 function matchesDate(eventDate: Date, filters: DiscoverFilters): boolean {
   const today = startOfDay(new Date());
 
@@ -82,7 +82,6 @@ function matchesDate(eventDate: Date, filters: DiscoverFilters): boolean {
         end: endOfDay(addDays(today, 6)),
       });
     case "weekend": {
-      // The next Saturday/Sunday, inclusive of today if today already falls on the weekend.
       let cursor = today;
       while (!isWeekend(cursor)) cursor = addDays(cursor, 1);
       const weekendEnd = cursor.getDay() === 6 ? addDays(cursor, 1) : cursor;
@@ -122,9 +121,7 @@ const Discover = () => {
     const search = filters.search.trim().toLowerCase();
 
     return events.filter((event) => {
-      const eventDateTime = new Date(
-        `${event.schedule.date}T${event.schedule.time}`,
-      );
+      const eventDateTime = new Date(`${event.schedule.date}T${event.schedule.time}`);
       if (eventDateTime.getTime() < now - oneHour) return false;
 
       if (!matchesDate(eventDateTime, filters)) return false;
@@ -147,8 +144,7 @@ const Discover = () => {
     });
   }, [events, filters]);
 
-  const isFiltered =
-    filters.search.trim() !== "" || filters.datePreset !== "any";
+  const isFiltered = filters.search.trim() !== "" || filters.datePreset !== "any";
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
@@ -157,15 +153,14 @@ const Discover = () => {
         description="Explore popular events near you"
         keywords="events, discover events, community events, OX Entertainment"
       />
-      <div
-        className="animate-fade-in"
-        style={{ animationDelay: "0.1s", animationFillMode: "both" }}
-      >
+
+      <div className="animate-fade-in" style={{ animationDelay: "0.1s", animationFillMode: "both" }}>
         <Navbar />
       </div>
 
       {/* Hero Section */}
       <section className="pt-32 md:pt-40 lg:pt-48 pb-6 md:pb-16 lg:pb-24 px-4 md:px-8 relative overflow-hidden">
+        {/* ... (hero content unchanged) */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{ transform: `translate3d(0, ${scrollY * 0.5}px, 0)` }}
@@ -182,78 +177,44 @@ const Discover = () => {
             opacity: Math.max(0, 1 - scrollY / 700),
           }}
         >
+          {/* Hero content remains the same */}
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-medium mb-6 md:mb-10 inline-flex flex-col items-center">
             <div className="flex gap-2 items-center">
-              <span
-                className="border border-foreground px-3 md:px-6 py-2 md:py-4 animate-fade-in"
-                style={{ animationDelay: "0.3s", animationFillMode: "both" }}
-              >
+              <span className="border border-foreground px-3 md:px-6 py-2 md:py-4 animate-fade-in"
+                style={{ animationDelay: "0.3s", animationFillMode: "both" }}>
                 Discover
               </span>
-              <span
-                className="bg-[hsl(300,100%,73%)] text-foreground border border-foreground px-3 md:px-6 py-2 md:py-4 rounded-[20px] md:rounded-[40px] -ml-px animate-fade-in"
-                style={{ animationDelay: "0.4s", animationFillMode: "both" }}
-              >
+              <span className="bg-[hsl(300,100%,73%)] text-foreground border border-foreground px-3 md:px-6 py-2 md:py-4 rounded-[20px] md:rounded-[40px] -ml-px animate-fade-in"
+                style={{ animationDelay: "0.4s", animationFillMode: "both" }}>
                 events
               </span>
             </div>
             <div className="flex items-center -mt-px">
-              <span
-                className="border border-foreground px-3 md:px-6 py-2 md:py-4 animate-fade-in"
-                style={{ animationDelay: "0.5s", animationFillMode: "both" }}
-              >
+              <span className="border border-foreground px-3 md:px-6 py-2 md:py-4 animate-fade-in"
+                style={{ animationDelay: "0.5s", animationFillMode: "both" }}>
                 near
               </span>
-              <span
-                className="border border-l-0 border-foreground px-3 md:px-6 py-2 md:py-4 animate-fade-in"
-                style={{ animationDelay: "0.6s", animationFillMode: "both" }}
-              >
+              <span className="border border-l-0 border-foreground px-3 md:px-6 py-2 md:py-4 animate-fade-in"
+                style={{ animationDelay: "0.6s", animationFillMode: "both" }}>
                 you
               </span>
             </div>
           </h1>
-          <p
-            className="text-sm md:text-base lg:text-[18px] text-foreground/80 max-w-2xl mx-auto h-7 animate-fade-in"
-            style={{ animationDelay: "0.7s", animationFillMode: "both" }}
-          >
+          <p className="text-sm md:text-base lg:text-[18px] text-foreground/80 max-w-2xl mx-auto h-7 animate-fade-in"
+            style={{ animationDelay: "0.7s", animationFillMode: "both" }}>
             <TypewriterText />
           </p>
         </div>
       </section>
 
-      {/* Trusted By Marquee */}
-      <div
-        style={{
-          transform: `translate3d(0, ${Math.max(0, scrollY - 200) * -0.03}px, 0)`,
-        }}
-      >
-        <TrustedByMarquee />
-      </div>
-
-      {/* Featured Events - Instagram Stories format */}
-      <div
-        style={{
-          transform: `translate3d(0, ${Math.max(0, scrollY - 400) * -0.05}px, 0)`,
-        }}
-      >
-        <FeaturedStoriesCarousel />
-      </div>
-
-      {/* Event Marketplace */}
-      <div
-        style={{
-          transform: `translate3d(0, ${Math.max(0, scrollY - 800) * -0.03}px, 0)`,
-        }}
-      >
-        <EventMarketplace />
-      </div>
+      <TrustedByMarquee />
+      <FeaturedStoriesCarousel />
+      <EventMarketplace />
 
       {/* Browse / Filter Section */}
       <section id="events-section" className="px-4 md:px-8 pb-16 pt-6 md:pt-16">
-        <div
-          className="flex flex-wrap items-center gap-2 mb-6 md:mb-8 animate-fade-in"
-          style={{ animationDelay: "0.8s", animationFillMode: "both" }}
-        >
+        <div className="flex flex-wrap items-center gap-2 mb-6 md:mb-8 animate-fade-in"
+          style={{ animationDelay: "0.8s", animationFillMode: "both" }}>
           <h2 className="text-base md:text-lg lg:text-xl font-normal">
             Browsing events in
           </h2>
@@ -273,10 +234,24 @@ const Discover = () => {
         <div className="mt-6 md:mt-8 grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-8 md:gap-x-6 md:gap-y-10">
           {loading ? (
             Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="animate-pulse">
-                <div className="aspect-[4/5] rounded-2xl bg-muted" />
-                <div className="mt-3 h-4 w-3/4 rounded bg-muted" />
-                <div className="mt-2 h-3 w-1/2 rounded bg-muted" />
+              <div key={i} className="flex h-full flex-col overflow-hidden rounded-xl border border-border animate-pulse">
+                {/* Skeleton Image */}
+                <div className="aspect-video bg-muted flex-shrink-0" />
+
+                {/* Skeleton Content */}
+                <div className="flex-1 flex flex-col p-4">
+                  <div className="flex justify-between mb-2">
+                    <div className="h-4 bg-muted rounded w-4/5" />
+                    <div className="h-5 w-12 bg-muted rounded" />
+                  </div>
+                  <div className="h-3 bg-muted rounded w-3/4 mb-2" />
+                  <div className="h-3 bg-muted rounded w-11/12 mb-auto" />
+                  
+                  <div className="flex justify-between pt-3 border-t border-border mt-auto">
+                    <div className="h-3 bg-muted rounded w-32" />
+                    <div className="h-7 w-7 bg-muted rounded-full" />
+                  </div>
+                </div>
               </div>
             ))
           ) : filteredEvents.length === 0 ? (

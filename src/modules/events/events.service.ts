@@ -162,7 +162,7 @@ export async function createEvent(organizerProfileId: string, input: CreateEvent
         tags: input.tags?.length ? input.tags : null,
         maxPerOrder: input.maxPerOrder ?? 10,
         status: input.status ?? "active",
-        eventCode: generateEventCode(),
+        eventCode: generateEventCode(input.title),
         createdBy: organizerProfileId,
       })
       .returning();

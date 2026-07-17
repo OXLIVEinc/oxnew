@@ -9,7 +9,9 @@ export function naira(amount: number): string {
 
 // Recognizes an OX deep-link event code, e.g. "OX-AFROBEATS-NIGHT-2026-A1B2C3"
 export function isDeepLinkCode(text: string): boolean {
-  return /^OX-[A-Z0-9-]+$/i.test(text.trim());
+  return /^OX-[A-Z0-9]+(?:-[A-Z0-9]+)*-\d{4}-[A-Z0-9]{6}$/i.test(
+    text.trim()
+  );
 }
 
 // Global commands that should work from ANY state

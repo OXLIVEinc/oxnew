@@ -22,15 +22,15 @@ export const DiscoverEventCard: React.FC<Props> = ({ event }) => {
 
   return (
     <div
-      className="group cursor-pointer"
+      className="group cursor-pointer h-full"
       onClick={() => navigate(`/event/${event.id}`)}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => e.key === 'Enter' && navigate(`/event/${event.id}`)}
     >
-      <div className="relative overflow-hidden rounded-xl border border-border transition-all hover:shadow-md">
-        {/* Image Section - Matching EventsPanel style */}
-        <div className="aspect-video bg-muted overflow-hidden">
+      <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border transition-all hover:shadow-md">
+        {/* Image Section - Fixed aspect ratio */}
+        <div className="aspect-video bg-muted overflow-hidden flex-shrink-0">
           <img
             src={event.backgroundImageUrl}
             alt={event.title}
@@ -39,10 +39,13 @@ export const DiscoverEventCard: React.FC<Props> = ({ event }) => {
           />
         </div>
 
-        <div className="p-4 space-y-2">
-          {/* Title + Status / Live Badge */}
-          <div className="flex items-start justify-between gap-2">
-            <h3 className="font-semibold text-sm truncate leading-tight">{event.title}</h3>
+        {/* Content Section - Grows to fill remaining height */}
+        <div className="flex-1 flex flex-col p-4">
+          {/* Title + Status */}
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <h3 className="font-semibold text-sm leading-tight line-clamp-2 flex-1">
+              {event.title}
+            </h3>
             
             <div className="flex items-center gap-1 shrink-0">
               {live && (
@@ -59,16 +62,18 @@ export const DiscoverEventCard: React.FC<Props> = ({ event }) => {
           </div>
 
           {/* Date */}
-          <p className="text-xs text-muted-foreground">{schedule.dateLabel} • {schedule.timeLabel}</p>
+          <p className="text-xs text-muted-foreground mb-2">
+            {schedule.dateLabel} • {schedule.timeLabel}
+          </p>
 
           {/* Location */}
-          <p className="text-xs text-muted-foreground flex items-center gap-1">
+          <p className="text-xs text-muted-foreground flex items-center gap-1 mb-auto">
             <MapPin size={13} className="shrink-0" />
             {event.venue || event.address}
           </p>
 
           {/* Bottom row: Guests + Heart */}
-          <div className="flex items-center justify-between text-xs pt-1">
+          <div className="flex items-center justify-between text-xs pt-3 border-t border-border mt-auto">
             <span className="text-muted-foreground">
               {event.registrationCount > 0 
                 ? `${event.registrationCount} ${event.registrationCount === 1 ? 'person' : 'people'} going` 

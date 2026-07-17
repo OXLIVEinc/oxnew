@@ -1,5 +1,5 @@
 import crypto from "crypto";
-
+import { nanoid } from "nanoid";
 /**
  * Formats an ISO date string for display on the printed ticket card.
  * e.g. "2026-08-14T00:00:00.000Z" -> "Fri, 14 Aug 2026"
@@ -33,10 +33,16 @@ export function generateCheckInCode(): string {
  * Generates a short, URL-safe, human-shareable event code
  * (used as the public slug for an event, e.g. in share links).
  */
-export function generateEventCode(): string {
-  return crypto.randomBytes(4).toString("hex");
-}
+export function generateEventCode(slug: string, year = new Date().getFullYear()): string {
+  const cleanSlug = slug
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
 
+  const shortCode = nanoid(6).toUpperCase();
+
+  return `OX-${cleanSlug}-${year}-${shortCode}`;
+}
 /**
  * Generates a unique order/ticket-order reference for Paystack.
  */

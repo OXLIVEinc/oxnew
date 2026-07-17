@@ -98,8 +98,10 @@ export const DiscoverFilterBar: React.FC<Props> = ({ filters, onChange, resultCo
                     <button
                       key={p.value}
                       onClick={() => {
-                        set('datePreset', p.value);
-                        set('customRange', undefined);
+                        // Update both fields in one go — calling set() twice here
+                        // used a stale `filters` closure on the second call and
+                        // clobbered the first update.
+                        onChange({ ...filters, datePreset: p.value, customRange: undefined });
                         if (p.value !== 'custom') setDateOpen(false);
                       }}
                       className={cn(
@@ -117,8 +119,9 @@ export const DiscoverFilterBar: React.FC<Props> = ({ filters, onChange, resultCo
                     numberOfMonths={1}
                     selected={filters.customRange}
                     onSelect={(range) => {
-                      set('customRange', range);
-                      set('datePreset', 'custom');
+                      // Same fix: one combined update instead of two separate
+                      // set() calls that stomped on each other.
+                      onChange({ ...filters, customRange: range, datePreset: 'custom' });
                     }}
                     className="pointer-events-auto"
                   />
