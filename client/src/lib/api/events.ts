@@ -37,3 +37,7 @@ export async function toggleEventLike(id: string) {
   const { data } = await api.post<{ liked: boolean; likeCount: number }>(`/events/${id}/like`);
   return data;
 }
+
+export async function deleteEvent(id: string) {
+  await api.delete(`/events/${id}`);
+}

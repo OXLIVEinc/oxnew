@@ -38,3 +38,8 @@ export const toggleLike = asyncHandler(async (req: Request, res: Response) => {
   const result = await eventsService.toggleLike(req.params.id, req.auth!.profileId);
   res.json(result);
 });
+
+export const deleteEvent = asyncHandler(async (req: Request, res: Response) => {
+  await eventsService.deleteEvent(req.params.id, req.auth!.profileId);
+  res.status(204).send();
+});

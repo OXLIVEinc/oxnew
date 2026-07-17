@@ -1,13 +1,11 @@
 /**
  * src/components/discover/DiscoverFilterBar.tsx
  * -------------------------------------------------------------------------
- * All filtering for the Discover page is client-side (see Discover.tsx) so
- * every control here can update instantly with no network round-trip —
- * including reset, which just snaps every field back to its default.
+ * Discover filtering is now just search + date, both client-side.
  * -------------------------------------------------------------------------
  */
 import React, { useState } from 'react';
-import { Search, X, SlidersHorizontal, ChevronDown } from 'lucide-react';
+import { Search, X, ChevronDown } from 'lucide-react';
 import { format, isSameDay } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -15,20 +13,15 @@ import { cn } from '@/lib/utils';
 import type { DateRange } from 'react-day-picker';
 
 export type DatePreset = 'any' | 'today' | 'tomorrow' | 'weekend' | 'week' | 'custom';
-export type PriceFilter = 'all' | 'free' | 'paid';
 
 export interface DiscoverFilters {
   search: string;
-  genre: string;
-  price: PriceFilter;
   datePreset: DatePreset;
   customRange: DateRange | undefined;
 }
 
 export const DEFAULT_FILTERS: DiscoverFilters = {
   search: '',
-  genre: 'all',
-  price: 'all',
   datePreset: 'any',
   customRange: undefined,
 };
@@ -44,7 +37,6 @@ const DATE_PRESETS: { value: DatePreset; label: string }[] = [
 interface Props {
   filters: DiscoverFilters;
   onChange: (filters: DiscoverFilters) => void;
-  genres: string[];
   resultCount: number;
   isFiltered: boolean;
   onReset: () => void;
@@ -60,20 +52,16 @@ function dateButtonLabel(filters: DiscoverFilters): string {
   return preset?.label ?? 'Any date';
 }
 
-export const DiscoverFilterBar: React.FC<Props> = ({ filters, onChange, genres, resultCount, isFiltered, onReset }) => {
+export const DiscoverFilterBar: React.FC<Props> = ({ filters, onChange, resultCount, isFiltered, onReset }) => {
   const [dateOpen, setDateOpen] = useState(false);
-  const [genreOpen, setGenreOpen] = useState(false);
-  const [moreOpen, setMoreOpen] = useState(false);
 
   const set = <K extends keyof DiscoverFilters>(key: K, value: DiscoverFilters[K]) =>
     onChange({ ...filters, [key]: value });
 
   return (
-    <div className="sticky max-w-2xl mx-auto top-16 z-30  px-4 md:px-8 py-3 bg-background/80 backdrop-blur-md border-b border-border/60">
+    <div className="sticky max-w-2xl mx-auto top-16 z-30 px-4 md:px-8 py-3 bg-background/80 backdrop-blur-md border-b border-border/60">
       <div className="flex flex-col lg:flex-row lg:items-center gap-3">
-        {/* Search pill */}
         <div className="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-0 rounded-2xl sm:rounded-full border border-border bg-card shadow-sm hover:shadow-md focus-within:shadow-md focus-within:border-foreground/30 transition-shadow p-1.5">
-          {/* Search */}
           <div className="flex items-center gap-2 flex-1 min-w-0 px-3 py-2">
             <Search size={16} className="text-muted-foreground shrink-0" />
             <input
@@ -91,7 +79,6 @@ export const DiscoverFilterBar: React.FC<Props> = ({ filters, onChange, genres, 
 
           <div className="hidden sm:block w-px h-6 bg-border shrink-0" />
 
-          {/* Date */}
           <Popover open={dateOpen} onOpenChange={setDateOpen}>
             <PopoverTrigger asChild>
               <button
@@ -137,87 +124,6 @@ export const DiscoverFilterBar: React.FC<Props> = ({ filters, onChange, genres, 
                   />
                 </div>
               </div>
-            </PopoverContent>
-          </Popover>
-
-          <div className="hidden sm:block w-px h-6 bg-border shrink-0" />
-
-          {/* Genre */}
-          <Popover open={genreOpen} onOpenChange={setGenreOpen}>
-            <PopoverTrigger asChild>
-              <button
-                className={cn(
-                  'flex items-center gap-2 px-3 py-2 rounded-full sm:rounded-none text-sm font-medium shrink-0 hover:bg-muted/60 transition-colors whitespace-nowrap',
-                  filters.genre !== 'all' ? 'text-foreground' : 'text-muted-foreground'
-                )}
-              >
-                {filters.genre === 'all' ? 'Category' : filters.genre}
-                <ChevronDown size={14} className="opacity-60" />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-56 p-1.5" align="start">
-              <button
-                onClick={() => {
-                  set('genre', 'all');
-                  setGenreOpen(false);
-                }}
-                className={cn(
-                  'w-full text-left text-sm px-3 py-2 rounded-lg transition-colors',
-                  filters.genre === 'all' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
-                )}
-              >
-                All categories
-              </button>
-              <div className="max-h-56 overflow-y-auto">
-                {genres.map((g) => (
-                  <button
-                    key={g}
-                    onClick={() => {
-                      set('genre', g);
-                      setGenreOpen(false);
-                    }}
-                    className={cn(
-                      'w-full text-left text-sm px-3 py-2 rounded-lg transition-colors capitalize',
-                      filters.genre === g ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
-                    )}
-                  >
-                    {g}
-                  </button>
-                ))}
-              </div>
-            </PopoverContent>
-          </Popover>
-
-          {/* More filters (price) */}
-          <Popover open={moreOpen} onOpenChange={setMoreOpen}>
-            <PopoverTrigger asChild>
-              <button
-                className={cn(
-                  'flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-full text-sm font-medium shrink-0 ml-auto sm:ml-1 transition-colors',
-                  filters.price !== 'all' ? 'bg-foreground text-background' : 'bg-muted/70 hover:bg-muted text-foreground'
-                )}
-              >
-                <SlidersHorizontal size={14} />
-                <span className="hidden xs:inline">Filters</span>
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-52 p-1.5" align="end">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground px-3 pt-1.5 pb-1">Price</p>
-              {(['all', 'free', 'paid'] as PriceFilter[]).map((p) => (
-                <button
-                  key={p}
-                  onClick={() => {
-                    set('price', p);
-                    setMoreOpen(false);
-                  }}
-                  className={cn(
-                    'w-full text-left text-sm px-3 py-2 rounded-lg capitalize transition-colors',
-                    filters.price === p ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
-                  )}
-                >
-                  {p === 'all' ? 'All events' : p}
-                </button>
-              ))}
             </PopoverContent>
           </Popover>
         </div>

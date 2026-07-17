@@ -65,3 +65,15 @@ export function useToggleEventLike(eventId: string) {
     },
   });
 }
+
+
+export function useDeleteEvent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (eventId: string) => eventsApi.deleteEvent(eventId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.events.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.events.mine() });
+    },
+  });
+}

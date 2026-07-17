@@ -24,6 +24,7 @@ router.get("/:id", controller.getEvent);
 router.post("/", requireAuth, requireRole("organizer"), controller.createEvent);
 router.patch("/:id", requireAuth, requireRole("organizer"), controller.updateEvent);
 router.post("/:id/like", requireAuth, controller.toggleLike);
+router.delete("/:id", requireAuth, requireRole("organizer"), controller.deleteEvent);
 
 router.use("/:eventId/ticket-tiers", ticketTiersRouter);
 

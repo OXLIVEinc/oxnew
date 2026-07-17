@@ -271,3 +271,22 @@ export async function toggleLike(eventId: string, profileId: string) {
   const stats = await getEngagementStatsForEvent(eventId);
   return { liked: !existing, likeCount: stats.likeCount };
 }
+
+
+export async function deleteEvent(eventId: string, organizerProfileId: string) {
+  const [existing] = await db.select().from(events).where(eq(events.id, eventId)).limit(1);
+  if (!existing) throw AppError.notFound("Event not found");
+  if (existing.createdBy !== organizerProfileId) {
+    throw AppError.forbidden("You do not own this event");
+  }
+
+  try {
+    await db.delete(events).where(eq(events.id, eventId));
+  } catch {
+    throw new AppError(
+      "This event has existing tickets or orders and can't be deleted",
+      409,
+      "EVENT_HAS_DEPENDENCIES"
+    );
+  }
+}

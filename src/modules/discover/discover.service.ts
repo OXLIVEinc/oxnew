@@ -65,20 +65,6 @@ export async function getFeatured() {
   return rows.map((e) => serialize(e, stats[e.id]));
 }
 
-export async function getTrending(limit = 20) {
-  const rows = await loadPublicUpcomingEvents();
-  const stats = await getEngagementStatsForEvents(rows.map((r) => r.id));
-
-  return rows
-    .map((event) => {
-      const s = stats[event.id] ?? { likeCount: 0, registrationCount: 0 };
-      const score = s.likeCount * TRENDING_LIKE_WEIGHT + s.registrationCount * TRENDING_REGISTRATION_WEIGHT;
-      return { event, stats: s, score };
-    })
-    .sort((a, b) => b.score - a.score)
-    .slice(0, limit)
-    .map(({ event, stats, score }) => serialize(event, stats, { trendingScore: score }));
-}
 
 export async function getThisWeek() {
   const now = new Date();
@@ -133,4 +119,24 @@ export async function getDiscoverFeed() {
     getDaily(),
   ]);
   return { featured, trending, thisWeek, daily };
+}
+
+
+
+export async function getTrending(limit = 20) {
+  const rows = await loadPublicUpcomingEvents();
+  const stats = await getEngagementStatsForEvents(rows.map((r) => r.id));
+
+  return rows
+    .map((event) => {
+      const s = stats[event.id] ?? { likeCount: 0, registrationCount: 0 };
+      const score = s.likeCount * TRENDING_LIKE_WEIGHT + s.registrationCount * TRENDING_REGISTRATION_WEIGHT;
+      return { event, stats: s, score };
+    })
+    // Trending requires BOTH signals — an event with only likes or only
+    // registrations (or neither) never qualifies.
+    .filter(({ stats }) => stats.likeCount > 0 && stats.registrationCount > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map(({ event, stats, score }) => serialize(event, stats, { trendingScore: score }));
 }
