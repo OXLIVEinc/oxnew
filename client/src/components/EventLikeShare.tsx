@@ -1,19 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { Heart, Share2 } from 'lucide-react';
-import { toast } from 'sonner';
-import { useAuth } from '@/context/AuthContext';
+import React, { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Heart } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { CopyLinkDropdown } from "./CopyLinkDropdown";
 
 interface EventLikeShareProps {
   eventId: string;
   eventTitle: string;
+  eventCode: string;
   onAuthRequired?: () => void;
 }
 
-export const EventLikeShare: React.FC<EventLikeShareProps> = ({ eventId, eventTitle, onAuthRequired }) => {
+export const EventLikeShare: React.FC<EventLikeShareProps> = ({
+  eventId,
+  eventTitle,
+  eventCode,
+  onAuthRequired,
+}) => {
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
-  const {user} = useAuth()
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchLikes();
@@ -25,20 +31,23 @@ export const EventLikeShare: React.FC<EventLikeShareProps> = ({ eventId, eventTi
 
   const fetchLikes = async () => {
     const { count } = await supabase
-      .from('event_likes')
-      .select('*', { count: 'exact', head: true })
-      .eq('event_id', eventId);
+      .from("event_likes")
+      .select("*", { count: "exact", head: true })
+      .eq("event_id", eventId);
+
     setLikeCount(count || 0);
   };
 
   const checkIfLiked = async () => {
     if (!user?.id) return;
+
     const { data } = await supabase
-      .from('event_likes')
-      .select('id')
-      .eq('event_id', eventId)
-      .eq('user_id', user?.id)
+      .from("event_likes")
+      .select("id")
+      .eq("event_id", eventId)
+      .eq("user_id", user.id)
       .maybeSingle();
+
     setLiked(!!data);
   };
 
@@ -49,25 +58,21 @@ export const EventLikeShare: React.FC<EventLikeShareProps> = ({ eventId, eventTi
     }
 
     if (liked) {
-      await supabase.from('event_likes').delete().eq('event_id', eventId).eq('user_id', user?.id);
+      await supabase
+        .from("event_likes")
+        .delete()
+        .eq("event_id", eventId)
+        .eq("user_id", user.id);
+
       setLiked(false);
       setLikeCount((c) => Math.max(0, c - 1));
     } else {
-      await supabase.from('event_likes').insert({ event_id: eventId, user_id: user?.id });
+      await supabase
+        .from("event_likes")
+        .insert({ event_id: eventId, user_id: user.id });
+
       setLiked(true);
       setLikeCount((c) => c + 1);
-    }
-  };
-
-  const handleShare = async () => {
-    const shareUrl = `https://ticketox.live/events/${eventId}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: eventTitle, url: shareUrl });
-      } catch {}
-    } else {
-      await navigator.clipboard.writeText(shareUrl);
-      toast.success('Link copied to clipboard!');
     }
   };
 
@@ -76,19 +81,23 @@ export const EventLikeShare: React.FC<EventLikeShareProps> = ({ eventId, eventTi
       <button
         onClick={toggleLike}
         className="flex items-center gap-1.5 px-3 h-[34px] border border-[#1A1A1A] bg-white hover:bg-gray-50 transition-colors"
-        aria-label={liked ? 'Unlike event' : 'Like event'}
+        aria-label={liked ? "Unlike event" : "Like event"}
       >
-        <Heart className={`w-4 h-4 ${liked ? 'fill-[#FA76FF] text-[#FA76FF]' : 'text-[#1A1A1A]'}`} />
-        <span className="text-[11px] uppercase font-medium">{likeCount}</span>
+        <Heart
+          className={`w-4 h-4 ${
+            liked ? "fill-[#FA76FF] text-[#FA76FF]" : "text-[#1A1A1A]"
+          }`}
+        />
+        <span className="text-[11px] uppercase font-medium">
+          {likeCount}
+        </span>
       </button>
-      <button
-        onClick={handleShare}
-        className="flex items-center gap-1.5 px-3 h-[34px] border border-[#1A1A1A] bg-white hover:bg-gray-50 transition-colors"
-        aria-label="Share event"
-      >
-        <Share2 className="w-4 h-4 text-[#1A1A1A]" />
-        <span className="text-[11px] uppercase font-medium">Share</span>
-      </button>
+
+      <CopyLinkDropdown
+        eventId={eventId}
+        eventTitle={eventTitle}
+        eventCode={eventCode}
+      />
     </div>
   );
 };

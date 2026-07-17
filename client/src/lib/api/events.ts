@@ -8,9 +8,19 @@
 import { api } from "./http";
 import type { CreateEventPayload, EventDetail, EventSummary, TicketTier } from "./types";
 
-export async function fetchEvents(params?: { q?: string; genre?: string; ageGroup?: string }) {
-  const { data } = await api.get<{ events: EventSummary[] }>("/events", { params });
-  return data.events;
+// src/lib/api/events.ts
+export async function fetchEvents(params?: {
+  q?: string;
+  genre?: string;
+  ageGroup?: string;
+  page?: number;
+  limit?: number;
+}) {
+  const { data } = await api.get<{ 
+    events: EventSummary[];
+    pagination: { page: number; limit: number; total: number; totalPages: number };
+  }>("/events", { params });
+  return data;
 }
 
 export async function fetchEvent(id: string) {

@@ -1,4 +1,4 @@
-// src/pages/Discover.tsx (or wherever this file is)
+// src/pages/Discover.tsx
 import React, { useState, useEffect, useMemo } from "react";
 import { Navbar } from "@/components/Navbar";
 import { SEOHead } from "@/components/SEOHead";
@@ -21,7 +21,7 @@ import {
   startOfDay,
   endOfDay,
 } from "date-fns";
-import { SearchX } from "lucide-react";
+import { SearchX, ChevronLeft, ChevronRight } from "lucide-react";
 
 const TYPEWRITER_PHRASES = [
   "Built to Empower Events.",
@@ -103,22 +103,35 @@ function matchesDate(eventDate: Date, filters: DiscoverFilters): boolean {
   }
 }
 
+const PAGE_SIZE = 20;
+
 const Discover = () => {
   const [filters, setFilters] = useState<DiscoverFilters>(DEFAULT_FILTERS);
+  const [currentPage, setCurrentPage] = useState(1);
   const [scrollY, setScrollY] = useState(0);
+
   const geo = useGeoLocation();
-  const { data: events = [], isLoading: loading } = useEvents();
 
+  const { data, isLoading: loading, isFetching } = useEvents({
+    q: filters.search?.trim() || undefined,
+    genre: filters.genre || undefined,
+    // ageGroup: filters.ageGroup || undefined, // uncomment if you add this filter
+    page: currentPage,
+    limit: PAGE_SIZE,
+  });
+
+  const events = data?.events ?? [];
+  const pagination = data?.pagination;
+
+  // Reset to first page when filters change
   useEffect(() => {
-    const handleScroll = () => setScrollY(window.scrollY);
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+    setCurrentPage(1);
+  }, [filters]);
 
+  // Client-side date filtering (can be moved to backend later)
   const filteredEvents = useMemo(() => {
     const now = Date.now();
     const oneHour = 1000 * 60 * 60;
-    const search = filters.search.trim().toLowerCase();
 
     return events.filter((event) => {
       const eventDateTime = new Date(`${event.schedule.date}T${event.schedule.time}`);
@@ -126,25 +139,18 @@ const Discover = () => {
 
       if (!matchesDate(eventDateTime, filters)) return false;
 
-      if (search) {
-        const haystack = [
-          event.title,
-          event.venue,
-          event.address,
-          event.genre,
-          ...(event.tags ?? []),
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-        if (!haystack.includes(search)) return false;
-      }
-
       return true;
     });
   }, [events, filters]);
 
   const isFiltered = filters.search.trim() !== "" || filters.datePreset !== "any";
+
+  // Scroll handler for hero parallax
+  useEffect(() => {
+    const handleScroll = () => setScrollY(window.scrollY);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
@@ -160,7 +166,6 @@ const Discover = () => {
 
       {/* Hero Section */}
       <section className="pt-32 md:pt-40 lg:pt-48 pb-6 md:pb-16 lg:pb-24 px-4 md:px-8 relative overflow-hidden">
-        {/* ... (hero content unchanged) */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{ transform: `translate3d(0, ${scrollY * 0.5}px, 0)` }}
@@ -177,7 +182,6 @@ const Discover = () => {
             opacity: Math.max(0, 1 - scrollY / 700),
           }}
         >
-          {/* Hero content remains the same */}
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-medium mb-6 md:mb-10 inline-flex flex-col items-center">
             <div className="flex gap-2 items-center">
               <span className="border border-foreground px-3 md:px-6 py-2 md:py-4 animate-fade-in"
@@ -226,19 +230,16 @@ const Discover = () => {
         <DiscoverFilterBar
           filters={filters}
           onChange={setFilters}
-          resultCount={filteredEvents.length}
+          resultCount={pagination?.total ?? 0}
           isFiltered={isFiltered}
           onReset={() => setFilters(DEFAULT_FILTERS)}
         />
 
         <div className="mt-6 md:mt-8 grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-8 md:gap-x-6 md:gap-y-10">
           {loading ? (
-            Array.from({ length: 8 }).map((_, i) => (
+            Array.from({ length: PAGE_SIZE }).map((_, i) => (
               <div key={i} className="flex h-full flex-col overflow-hidden rounded-xl border border-border animate-pulse">
-                {/* Skeleton Image */}
                 <div className="aspect-video bg-muted flex-shrink-0" />
-
-                {/* Skeleton Content */}
                 <div className="flex-1 flex flex-col p-4">
                   <div className="flex justify-between mb-2">
                     <div className="h-4 bg-muted rounded w-4/5" />
@@ -246,7 +247,6 @@ const Discover = () => {
                   </div>
                   <div className="h-3 bg-muted rounded w-3/4 mb-2" />
                   <div className="h-3 bg-muted rounded w-11/12 mb-auto" />
-                  
                   <div className="flex justify-between pt-3 border-t border-border mt-auto">
                     <div className="h-3 bg-muted rounded w-32" />
                     <div className="h-7 w-7 bg-muted rounded-full" />
@@ -289,6 +289,33 @@ const Discover = () => {
             ))
           )}
         </div>
+
+        {/* Pagination */}
+        {pagination && pagination.totalPages > 1 && (
+          <div className="mt-12 flex items-center justify-center gap-4">
+            <button
+              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+              disabled={currentPage === 1 || isFetching}
+              className="flex items-center gap-2 px-6 py-3 rounded-2xl border border-border hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
+            >
+              <ChevronLeft size={18} />
+              Previous
+            </button>
+
+            <div className="px-6 py-3 rounded-2xl border border-border font-medium">
+              Page <span className="text-primary">{currentPage}</span> of {pagination.totalPages}
+            </div>
+
+            <button
+              onClick={() => setCurrentPage((prev) => Math.min(pagination.totalPages, prev + 1))}
+              disabled={currentPage === pagination.totalPages || isFetching}
+              className="flex items-center gap-2 px-6 py-3 rounded-2xl border border-border hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
+            >
+              Next
+              <ChevronRight size={18} />
+            </button>
+          </div>
+        )}
       </section>
     </div>
   );

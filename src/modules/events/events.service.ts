@@ -5,7 +5,7 @@
  * from `req`/`res` directly, which keeps it independently testable.
  * -------------------------------------------------------------------------
  */
-import { and, desc, eq, ilike, or } from "drizzle-orm";
+import { and, desc, eq, ilike, or,count } from "drizzle-orm";
 import { db } from "@/config/database";
 import {
   events,
@@ -89,29 +89,70 @@ function serializeEvent(
 }
 
 /** Public event list — only approved + active events, newest first. */
-export async function listPublicEvents(params: { q?: string; genre?: string; ageGroup?: string }) {
-  const conditions = [eq(events.status, "active"), eq(events.approvalStatus, "approved")];
+// src/services/events.service.ts (or wherever listPublicEvents is)
+
+export async function listPublicEvents(params: {
+  q?: string;
+  genre?: string;
+  ageGroup?: string;
+  page?: number;
+  limit?: number;
+}) {
+  const page = Math.max(1, params.page || 1);
+  const limit = Math.min(50, Math.max(1, params.limit || 20)); // cap at 50
+  const offset = (page - 1) * limit;
+
+  const conditions = [
+    eq(events.status, "active"),
+    eq(events.approvalStatus, "approved"),
+  ];
+
   if (params.genre) conditions.push(eq(events.genre, params.genre));
   if (params.ageGroup) conditions.push(eq(events.ageGroup, params.ageGroup));
   if (params.q) {
-    conditions.push(or(ilike(events.title, `%${params.q}%`), ilike(events.address, `%${params.q}%`))!);
+    conditions.push(
+      or(
+        ilike(events.title, `%${params.q}%`),
+        ilike(events.address, `%${params.q}%`),
+      )!
+    );
   }
 
-  const rows = await db
-    .select()
-    .from(events)
-    .where(and(...conditions))
-    .orderBy(desc(events.startsAt));
+  const [rows, totalCount] = await Promise.all([
+    db
+      .select()
+      .from(events)
+      .where(and(...conditions))
+      .orderBy(desc(events.startsAt))
+      .limit(limit)
+      .offset(offset),
 
-  const ids = rows.map((r) => r.id);
+    db
+      .select({ count: count() })
+      .from(events)
+      .where(and(...conditions))
+      .then((res) => res[0].count),
+  ]);
+
+  const ids = rows.map((r:any) => r.id);
   const stats = await getEngagementStatsForEvents(ids);
 
-  return rows.map((event) =>
+  const serialized = rows.map((event:Event) =>
     serializeEvent(event, {
       likeCount: stats[event.id]?.likeCount ?? 0,
       registrationCount: stats[event.id]?.registrationCount ?? 0,
     })
   );
+
+  return {
+    events: serialized,
+    pagination: {
+      page,
+      limit,
+      total: Number(totalCount),
+      totalPages: Math.ceil(Number(totalCount) / limit),
+    },
+  };
 }
 
 /** Full detail for a single event, including its ticket tiers (with derived sold-out flag). */

@@ -8,12 +8,20 @@ import type { Request, Response } from "express";
 import { asyncHandler } from "@/middleware/error.middleware";
 import * as eventsService from "./events.service";
 
+// server/routes/events.ts (or wherever listEvents is)
 export const listEvents = asyncHandler(async (req: Request, res: Response) => {
-  const { q, genre, ageGroup } = req.query as Record<string, string | undefined>;
-  const events = await eventsService.listPublicEvents({ q, genre, ageGroup });
-  res.json({ events });
-});
+  const { q, genre, ageGroup, page = "1", limit = "20" } = req.query as Record<string, string>;
 
+  const result = await eventsService.listPublicEvents({
+    q,
+    genre,
+    ageGroup,
+    page: parseInt(page),
+    limit: parseInt(limit),
+  });
+
+  res.json(result);
+});
 export const getEvent = asyncHandler(async (req: Request, res: Response) => {
   const event = await eventsService.getEventDetail(req.params.id);
   res.json({ event });

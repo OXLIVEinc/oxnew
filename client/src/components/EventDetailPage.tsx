@@ -191,7 +191,7 @@ export const EventDetailPage: React.FC = () => {
             <EventMeta date={schedule.dateLabel} time={schedule.timeLabel} />
             <EventHeader title={event.title} creatorUserId={event.createdBy} />
             <EventTagsDisplay ageGroup={event.ageGroup} genre={event.genre} tags={event.tags} />
-            <EventLikeShare eventId={event.id} eventTitle={event.title} onAuthRequired={() => setIsAuthOpen(true)} />
+            <EventLikeShare eventCode={event.eventCode} eventId={event.id} eventTitle={event.title} onAuthRequired={() => setIsAuthOpen(true)} />
           </div>
 
           <EventDescription description={event.description ?? ''} />

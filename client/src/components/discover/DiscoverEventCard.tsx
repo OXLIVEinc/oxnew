@@ -22,7 +22,7 @@ export const DiscoverEventCard: React.FC<Props> = ({ event }) => {
 
   return (
     <div
-      className="group cursor-pointer h-full"
+      className="group  cursor-pointer h-full"
       onClick={() => navigate(`/event/${event.id}`)}
       role="button"
       tabIndex={0}

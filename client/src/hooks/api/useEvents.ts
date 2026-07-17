@@ -10,10 +10,22 @@ import * as eventsApi from "@/lib/api/events";
 import type { CreateEventPayload } from "@/lib/api/types";
 import { queryKeys } from "./queryKeys";
 
-export function useEvents(params?: { q?: string; genre?: string; ageGroup?: string }) {
+// src/hooks/api/useEvents.ts
+// src/hooks/api/useEvents.ts
+import { keepPreviousData } from "@tanstack/react-query";
+
+export function useEvents(params?: {
+  q?: string;
+  genre?: string;
+  ageGroup?: string;
+  page?: number;
+  limit?: number;
+}) {
   return useQuery({
     queryKey: queryKeys.events.list(params),
     queryFn: () => eventsApi.fetchEvents(params),
+    placeholderData: keepPreviousData,   // ← This is the correct v5 way
+    staleTime: 1000 * 60 * 5,            // optional: 5 minutes
   });
 }
 
@@ -22,6 +34,7 @@ export function useEvent(id: string | undefined) {
     queryKey: queryKeys.events.detail(id ?? ""),
     queryFn: () => eventsApi.fetchEvent(id!),
     enabled: Boolean(id),
+    placeholderData: keepPreviousData,
   });
 }
 
