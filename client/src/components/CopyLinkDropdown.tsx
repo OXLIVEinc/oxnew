@@ -24,7 +24,6 @@ interface CopyLinkDropdownProps {
 
 export function CopyLinkDropdown({
   eventId,
-  eventTitle,
   eventCode,
 }: CopyLinkDropdownProps) {
   const [copied, setCopied] = useState<"link" | "wa" | null>(null);
