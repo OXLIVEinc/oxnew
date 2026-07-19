@@ -1,7 +1,3 @@
-/**
- * src/components/hotel/DashboardPanel.tsx
- * -------------------------------------------------------------------------
- */
 import React from "react";
 import { useHotelActivity, useHotelOverview, useHotelRevenueChart, useHotelStatusChart } from "@/hooks/api/useHotelDashboard";
 import { OverviewCards } from "./OverviewCards";

@@ -10,6 +10,7 @@ const PAGE_SIZE = db.PAGE_SIZE;
  * prompt. Reply MORE to page through the rest, exactly like event/hotel
  * browsing.
  */
+
 export async function showBookings(
   phone: string,
   kind: ConversationContext['bookingKind'] = 'both',
@@ -37,9 +38,9 @@ export async function showBookings(
     reply += overview.tickets
       .map(
         (t) =>
-          `- ${t.eventName} - ${t.tierLabel}\n  Name: ${t.attendeeName} | Ref: ${t.checkInCode} | Status: ${t.status}`
+          `${t.eventName} - ${t.tierLabel}\nName: ${t.attendeeName} | Ref: ${t.checkInCode} | Status: ${t.status}`
       )
-      .join('\n');
+      .join('\n\n');
     reply += `\n\n`;
   }
 
@@ -48,15 +49,16 @@ export async function showBookings(
     reply += overview.hotelOrders
       .map(
         (h) =>
-          `- ${h.hotelName} - ${h.roomTypeName}\n  ${formatDate(h.checkIn)} to ${formatDate(h.checkOut)} | Ref: ${h.reference} | Status: ${h.status}`
+          `${h.hotelName} - ${h.roomTypeName}\n${formatDate(h.checkIn)} to ${formatDate(h.checkOut)} | Ref: ${h.reference} | Status: ${h.status}`
       )
-      .join('\n');
+      .join('\n\n');
     reply += `\n\n`;
   }
 
   if (overview.hasMore) {
     reply += `Reply MORE to see more, or type MENU for options.\n`;
   }
+
   reply += `Type PENDING to view and cancel anything awaiting payment or confirmation.`;
 
   return {
@@ -75,7 +77,9 @@ export async function showPending(phone: string): Promise<FlowResult> {
   const pending = await db.getPendingItemsForUser(phone);
 
   const nothingPending =
-    pending.ticketOrders.length === 0 && pending.hotelOrders.length === 0 && pending.transfers.length === 0;
+    pending.ticketOrders.length === 0 &&
+    pending.hotelOrders.length === 0 &&
+    pending.transfers.length === 0;
 
   if (nothingPending) {
     return { reply: `You don't have anything pending right now. Type MENU for options.` };
@@ -88,9 +92,9 @@ export async function showPending(phone: string): Promise<FlowResult> {
     reply += pending.ticketOrders
       .map(
         (o) =>
-          `- ${o.eventName}\n  Ref: ${o.reference} | ${naira(Number(o.amount))} | Status: ${o.status}`
+          `${o.eventName}\nRef: ${o.reference} | ${naira(Number(o.amount))} | Status: ${o.status}`
       )
-      .join('\n');
+      .join('\n\n');
     reply += `\n\n`;
   }
 
@@ -99,22 +103,27 @@ export async function showPending(phone: string): Promise<FlowResult> {
     reply += pending.hotelOrders
       .map(
         (o) =>
-          `- ${o.hotelName}\n  Ref: ${o.reference} | ${naira(Number(o.amount))} | Status: ${o.status}`
+          `${o.hotelName}\nRef: ${o.reference} | ${naira(Number(o.amount))} | Status: ${o.status}`
       )
-      .join('\n');
+      .join('\n\n');
     reply += `\n\n`;
   }
 
   if (pending.transfers.length > 0) {
     reply += `OUTGOING TICKET TRANSFERS\n`;
     reply += pending.transfers
-      .map((t) => `- ${t.eventName}\n  Code: ${t.transferCode} | To: ${t.recipientPhone}`)
-      .join('\n');
+      .map(
+        (t) =>
+          `${t.eventName}\nCode: ${t.transferCode} | To: ${t.recipientPhone}`
+      )
+      .join('\n\n');
     reply += `\n\n`;
   }
 
   reply += `To cancel any of these, reply CANCEL followed by the reference or code, e.g. CANCEL ${
-    pending.ticketOrders[0]?.reference || pending.hotelOrders[0]?.reference || pending.transfers[0]?.transferCode
+    pending.ticketOrders[0]?.reference ||
+    pending.hotelOrders[0]?.reference ||
+    pending.transfers[0]?.transferCode
   }.\n\nType MENU for options.`;
 
   return { reply };

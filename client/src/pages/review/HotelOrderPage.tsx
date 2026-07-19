@@ -2,9 +2,8 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Shell, CenterState } from '../../components/review/Shell';
 import { Countdown } from '../../components/review/Countdown';
-import { StubCard } from '../../components/review/StubCard';
 import { fetchHotelOrder, payHotelOrder, type HotelOrder } from '../../lib/api/review';
-import { Eyebrow, Title, Subtitle, Row, Divider, ErrorText, SectionCard, Field, PrimaryButton, Badge } from '../../components/review/ui';
+import { Eyebrow, Title, Subtitle, Row, Divider, ErrorText, SectionCard, Field, PrimaryButton, InfoCard, InfoCardSection, Badge } from '../../components/review/ui';
 
 const naira = (amount: number) =>
   new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(amount);
@@ -64,30 +63,38 @@ export default function HotelOrderPage() {
   }
 
   const isFree = Number(order.amount) === 0;
+  const isWeb = order.orderSource !== 'whatsapp';
   const nights = order.nights;
   const statusMeta = STATUS_COPY[order.status] || { label: order.status, badge: 'pending' as const };
 
   if (order.status !== 'pending') {
     return (
       <Shell>
-        <StubCard
-          top={
-            <>
-              <Eyebrow>{hotelName}</Eyebrow>
+        <InfoCard>
+          <InfoCardSection>
+            <Eyebrow>{hotelName}</Eyebrow>
+            <div className="mb-3">
               <Badge tone={statusMeta.badge}>{statusMeta.label}</Badge>
-              <p className="mt-3 text-[13.5px] leading-relaxed text-[#1A1A1A]/55">
-                {order.status === 'paid' &&
-                  "We've sent your request to the hotel. You'll get a confirmation on WhatsApp within 30 minutes."}
-                {order.status === 'confirmed' && 'Your stay is confirmed. Show this on WhatsApp at check-in.'}
-                {order.status === 'declined' &&
-                  `Sorry, the hotel couldn't accommodate this request.${isFree ? '' : " You'll be refunded shortly."}`}
-                {order.status === 'cancelled' && 'This booking was cancelled.'}
-                {order.status === 'awaiting_payment' && "We're waiting on payment confirmation for this booking."}
-              </p>
-            </>
-          }
-          bottom={<span className="font-mono text-[13.5px] text-[#1A1A1A]/55">Ref: {order.reference}</span>}
-        />
+            </div>
+            <Subtitle>
+              {order.status === 'paid' &&
+                `We've sent your request to the hotel. You'll get a confirmation ${
+                  isWeb ? 'here' : 'on WhatsApp'
+                } within 30 minutes.`}
+              {order.status === 'confirmed' &&
+                (isWeb
+                  ? 'Your stay is confirmed. Have this reference ready at check-in.'
+                  : 'Your stay is confirmed. Show this on WhatsApp at check-in.')}
+              {order.status === 'declined' &&
+                `Sorry, the hotel couldn't accommodate this request.${isFree ? '' : " You'll be refunded shortly."}`}
+              {order.status === 'cancelled' && 'This booking was cancelled.'}
+              {order.status === 'awaiting_payment' && "We're waiting on payment confirmation for this booking."}
+            </Subtitle>
+            <div className="mt-6 border-t border-zinc-200 pt-4">
+              <span className="font-mono text-sm text-zinc-400">Ref: {order.reference}</span>
+            </div>
+          </InfoCardSection>
+        </InfoCard>
       </Shell>
     );
   }
@@ -97,7 +104,7 @@ export default function HotelOrderPage() {
       <Shell>
         <CenterState>
           <Title>This booking link has expired</Title>
-          <Subtitle>Go back to WhatsApp and type MENU to book again.</Subtitle>
+          <Subtitle>{isWeb ? 'Please start a new booking.' : 'Go back to WhatsApp and type MENU to book again.'}</Subtitle>
         </CenterState>
       </Shell>
     );
@@ -121,56 +128,69 @@ export default function HotelOrderPage() {
 
   return (
     <Shell>
-      <StubCard
-        top={
-          <>
-            <Eyebrow>Booking review</Eyebrow>
-            <h1 className="mb-1.5 text-[22px] font-bold leading-tight tracking-tight text-[#1A1A1A]">{hotelName}</h1>
-            <p className="text-[13.5px] text-[#1A1A1A]/50">{order.roomTypeName}</p>
-            <p className="text-[13.5px] text-[#1A1A1A]/50">{hotelAddress}</p>
-          </>
-        }
-        bottom={
-          <>
-            <Row label="Check-in" value={dateLabel(order.checkIn)} />
-            <Row label="Check-out" value={dateLabel(order.checkOut)} />
-            <Row label="Nights" value={nights} />
-            <Row label="Guests" value={order.guests} />
-            <Row label="Price per night" value={naira(Number(order.pricePerNight))} />
-            <Divider />
-            <Row label="Total" value={isFree ? 'Free' : naira(Number(order.amount))} />
-            <Row label="Reference" value={order.reference} mono />
-            {order.expiresAt && (
-              <div className="mt-2.5">
-                <Countdown expiresAt={order.expiresAt} createdAt={order.createdAt} onExpire={() => setExpired(true)} />
-              </div>
-            )}
-          </>
-        }
-      />
+      <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
+        {/* Form */}
+        <div className="lg:w-7/12">
+          {!isFree && (
+            <SectionCard heading="Receipt email (optional)">
+              <Field
+                id="email"
+                type="email"
+                label="Email"
+                value={email}
+                placeholder="name@example.com"
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </SectionCard>
+          )}
 
-      {!isFree && (
-        <SectionCard heading="Receipt email (optional)">
-          <Field type="email" value={email} placeholder="name@example.com" onChange={(e) => setEmail(e.target.value)} />
-        </SectionCard>
-      )}
+          {submitError && (
+            <div className="mt-4">
+              <ErrorText>{submitError}</ErrorText>
+            </div>
+          )}
 
-      {submitError && (
-        <div className="mt-4">
-          <ErrorText>{submitError}</ErrorText>
+          <div className="mt-5">
+            <PrimaryButton disabled={submitting} onClick={handlePay}>
+              {submitting ? 'Please wait...' : isFree ? 'Confirm free booking' : `Proceed to pay ${naira(Number(order.amount))}`}
+            </PrimaryButton>
+          </div>
+          <p className="mt-3.5 text-center text-[12px] text-zinc-400">
+            {isFree
+              ? isWeb
+                ? 'This booking will be sent straight to the hotel for confirmation.'
+                : 'This booking will be sent straight to the hotel for confirmation.'
+              : "You'll be redirected to Paystack to complete payment securely."}
+          </p>
         </div>
-      )}
 
-      <div className="mt-5">
-        <PrimaryButton disabled={submitting} onClick={handlePay}>
-          {submitting ? 'Please wait...' : isFree ? 'Confirm free booking' : `Proceed to pay ${naira(Number(order.amount))}`}
-        </PrimaryButton>
+        {/* Summary */}
+        <div className="lg:w-5/12">
+          <InfoCard>
+            <InfoCardSection>
+              <Eyebrow>Booking review</Eyebrow>
+              <Title>{hotelName}</Title>
+              <p className="text-[13.5px] text-zinc-500">{order.roomTypeName}</p>
+              <p className="text-[13.5px] text-zinc-500">{hotelAddress}</p>
+            </InfoCardSection>
+            <div className="border-t border-zinc-200 px-6 py-4">
+              <Row label="Check-in" value={dateLabel(order.checkIn)} />
+              <Row label="Check-out" value={dateLabel(order.checkOut)} />
+              <Row label="Nights" value={nights} />
+              <Row label="Guests" value={order.guests} />
+              <Row label="Price per night" value={naira(Number(order.pricePerNight))} />
+              <Divider />
+              <Row label="Total" value={isFree ? 'Free' : naira(Number(order.amount))} />
+              <Row label="Reference" value={order.reference} mono />
+              {order.expiresAt && (
+                <div className="mt-2.5">
+                  <Countdown expiresAt={order.expiresAt} createdAt={order.createdAt} onExpire={() => setExpired(true)} />
+                </div>
+              )}
+            </div>
+          </InfoCard>
+        </div>
       </div>
-      <p className="mt-3.5 text-center text-[12.5px] text-[#1A1A1A]/35">
-        {isFree
-          ? 'This booking will be sent straight to the hotel for confirmation.'
-          : "You'll be redirected to Paystack to complete payment securely."}
-      </p>
     </Shell>
   );
 }

@@ -1,16 +1,8 @@
-/**
- * server/modules/hotel/bookings/bookings.repository.ts
- * -------------------------------------------------------------------------
- * All raw Drizzle queries for hotel_orders live here. Every query is scoped
- * to a hotelId so a hotel partner can never see another hotel's bookings.
- * -------------------------------------------------------------------------
- */
 import { and, asc, desc, eq, gte, ilike, inArray, lte, or, sql, type SQL } from "drizzle-orm";
 import { db } from "@/config/database";
 import { auditLogs, hotelOrders, profiles } from "@shared/schema";
 import { TAB_STATUS_MAP, type BookingListParams } from "./bookings.types";
 
-/** audit_logs.action value used to mark a confirmed booking's guest as checked in. */
 export const CHECKED_IN_ACTION = "hotel_order_checked_in";
 
 function bookingSelection() {

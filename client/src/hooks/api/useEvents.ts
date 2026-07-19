@@ -1,17 +1,8 @@
-/**
- * src/hooks/api/useEvents.ts
- * -------------------------------------------------------------------------
- * All event data-fetching for guest/organizer flows goes through these
- * hooks. Components should never call `src/lib/api/events.ts` directly.
- * -------------------------------------------------------------------------
- */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as eventsApi from "@/lib/api/events";
 import type { CreateEventPayload } from "@/lib/api/types";
 import { queryKeys } from "./queryKeys";
 
-// src/hooks/api/useEvents.ts
-// src/hooks/api/useEvents.ts
 import { keepPreviousData } from "@tanstack/react-query";
 
 export function useEvents(params?: {

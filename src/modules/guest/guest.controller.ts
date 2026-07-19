@@ -1,7 +1,3 @@
-/**
- * server/modules/guest/guest.controller.ts
- * -------------------------------------------------------------------------
- */
 import type { Request, Response } from "express";
 import { asyncHandler } from "@/middleware/error.middleware";
 import * as guestService from "./guest.service";

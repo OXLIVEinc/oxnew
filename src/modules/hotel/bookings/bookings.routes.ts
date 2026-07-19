@@ -1,15 +1,3 @@
-/**
- * server/modules/hotel/bookings/bookings.routes.ts
- * Mounted at /api/hotel/bookings (see modules/hotel/hotel.routes.ts)
- * -------------------------------------------------------------------------
- *   GET   /                 -> paginated, filtered, sorted booking list
- *   GET   /:id               -> full booking detail (+ timeline)
- *   POST  /:id/confirm       -> hotel accepts a paid booking
- *   POST  /:id/decline       -> hotel declines a paid booking
- *   POST  /:id/check-in      -> mark guest checked in
- *   POST  /:id/complete      -> mark stay completed
- * -------------------------------------------------------------------------
- */
 import { Router } from "express";
 import { requireAuth, requireRole } from "@/middleware/auth.middleware";
 import * as controller from "./bookings.controller";

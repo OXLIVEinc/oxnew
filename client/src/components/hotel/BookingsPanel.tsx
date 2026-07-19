@@ -1,7 +1,3 @@
-/**
- * src/components/hotel/BookingsPanel.tsx
- * -------------------------------------------------------------------------
- */
 import React, { useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";

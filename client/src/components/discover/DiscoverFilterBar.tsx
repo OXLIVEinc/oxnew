@@ -1,9 +1,3 @@
-/**
- * src/components/discover/DiscoverFilterBar.tsx
- * -------------------------------------------------------------------------
- * Discover filtering is now just search + date, both client-side.
- * -------------------------------------------------------------------------
- */
 import React, { useState } from 'react';
 import { Search, X, ChevronDown } from 'lucide-react';
 import { format, isSameDay } from 'date-fns';

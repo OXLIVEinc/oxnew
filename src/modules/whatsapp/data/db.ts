@@ -321,7 +321,8 @@ export async function createTicketOrder(input: CreateTicketOrderInput): Promise<
       subtotal: String(subtotal),
       amount: String(amount),
       status: "pending",
-      expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+orderSource: "whatsapp",
+expiresAt: new Date(Date.now() + 30 * 60 * 1000),
     })
     .returning();
 

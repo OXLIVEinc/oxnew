@@ -22,6 +22,7 @@ import {
   endOfDay,
 } from "date-fns";
 import { SearchX, ChevronLeft, ChevronRight } from "lucide-react";
+import { EventFooter } from "@/components/EventFooter";
 
 const TYPEWRITER_PHRASES = [
   "Built to Empower Events.",
@@ -114,8 +115,6 @@ const Discover = () => {
 
   const { data, isLoading: loading, isFetching } = useEvents({
     q: filters.search?.trim() || undefined,
-    genre: filters.genre || undefined,
-    // ageGroup: filters.ageGroup || undefined, // uncomment if you add this filter
     page: currentPage,
     limit: PAGE_SIZE,
   });
@@ -317,7 +316,10 @@ const Discover = () => {
           </div>
         )}
       </section>
+
+      <EventFooter />
     </div>
+
   );
 };
 

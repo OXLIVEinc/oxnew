@@ -34,11 +34,8 @@ export function handleMainMenuInput(text: string): FlowResult {
       return {
         nextState: 'BROWSE_EVENTS',
         reply:
-          `You can:\n\n` +
-          `- Reply with an event code (e.g. OX-AFROBEATS-NIGHT-2026-A1B2C3)\n` +
-          `- Type a search term (e.g. "afrobeats" or "comedy"), or\n` +
-          `- Type ALL to see upcoming events\n\n` +
-          `Type MENU to go back.`,
+          `Please enter a search term (e.g. "Afrobeats" or "Comedy"), or type ALL to see all upcoming events.\n\n` +
+          `Type MENU to go back.`
       };
     case 2:
       return {

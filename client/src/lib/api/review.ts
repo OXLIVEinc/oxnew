@@ -87,6 +87,7 @@ export interface HotelOrder {
   expiresAt: string | null;
   createdAt: string;
   subTotal:string;
+  orderSource: 'web' | 'whatsapp';
 }
 
 export async function fetchHotelOrder(orderId: string): Promise<{ order: HotelOrder; hotelName: string; hotelAddress: string }> {
@@ -191,4 +192,5 @@ export interface TicketOrder {
   createdAt: string;
   subtotal: string;
   items?: AttendeeItem[] | null;
+  orderSource: 'web' | 'whatsapp';
 }

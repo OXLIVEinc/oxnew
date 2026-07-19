@@ -92,6 +92,7 @@ export async function registerForEvent(profileId: string, input: RegisterInput) 
         amount: tier.price,
         items: [{ attendeeName: input.attendeeName, attendeeEmail: input.attendeeEmail ?? "" }],
         status: "pending",
+        orderSource: "web",
       })
       .returning();
 
@@ -272,6 +273,7 @@ export async function createEventOrder(profileId: string, input: CreateOrderInpu
       amount: String(amount),
       items,
       status: "pending",
+      orderSource: "web",
       expiresAt: new Date(Date.now() + 30 * 60 * 1000),
     })
     .returning();

@@ -22,6 +22,8 @@ export const appRole = pgEnum("app_role", [
   'hotel_partner'
 ]);
 
+export const orderSourceEnum = pgEnum("order_source", ["web", "whatsapp"]);
+
 
 // ==================== ENUMS ====================
 
@@ -263,6 +265,7 @@ export const ticketOrders = pgTable("ticket_orders", {
   items: jsonb("items").$type<OrderItem[]>(),
 
   status: ticketOrderStatusEnum("status").notNull().default("pending"),
+  orderSource: orderSourceEnum("order_source").notNull().default("web"),
 
   paymentProvider: text("payment_provider").notNull().default("paystack"),
   accessCode: text("access_code"),
@@ -436,6 +439,7 @@ export const hotelOrders = pgTable("hotel_orders", {
   subtotal: numeric("subtotal", { precision: 10, scale: 2 }).notNull(),
   serviceFee: numeric("service_fee", { precision: 10, scale: 2 }).notNull().default("0"),
   status: hotelOrderStatusEnum("status").notNull().default("pending"),
+  orderSource: orderSourceEnum("order_source").notNull().default("web"),
   paymentProvider: text("payment_provider").notNull().default("paystack"),
   accessCode: text("access_code"),
   authorizationUrl: text("authorization_url"),
