@@ -1,18 +1,38 @@
 import React from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useHotelBooking, useCheckInBooking, useCompleteBooking, useConfirmBooking, useDeclineBooking } from "@/hooks/api/useHotelBookings";
-import { formatDateTime, formatNaira, statusLabel, STATUS_BADGE_VARIANT } from "@/lib/hotelFormat";
+import {
+  useHotelBooking,
+  useCheckInBooking,
+  useCompleteBooking,
+  useConfirmBooking,
+  useDeclineBooking,
+} from "@/hooks/api/useHotelBookings";
+import {
+  formatDateTime,
+  formatNaira,
+  statusLabel,
+  STATUS_BADGE_VARIANT,
+} from "@/lib/hotelFormat";
+import { Loader2 } from "lucide-react";
 
 interface Props {
   bookingId: string | null;
   onClose: () => void;
 }
 
-export const BookingDetailDialog: React.FC<Props> = ({ bookingId, onClose }) => {
+export const BookingDetailDialog: React.FC<Props> = ({
+  bookingId,
+  onClose,
+}) => {
   const { data: booking, isLoading } = useHotelBooking(bookingId ?? undefined);
 
   const confirm = useConfirmBooking();
@@ -20,13 +40,22 @@ export const BookingDetailDialog: React.FC<Props> = ({ bookingId, onClose }) => 
   const checkIn = useCheckInBooking();
   const complete = useCompleteBooking();
 
-  const isBusy = confirm.isPending || decline.isPending || checkIn.isPending || complete.isPending;
+  const isBusy =
+    confirm.isPending ||
+    decline.isPending ||
+    checkIn.isPending ||
+    complete.isPending;
 
   return (
-    <Dialog open={Boolean(bookingId)} onOpenChange={(open) => !open && onClose()}>
+    <Dialog
+      open={Boolean(bookingId)}
+      onOpenChange={(open) => !open && onClose()}
+    >
       <DialogContent className="max-w-xl p-0 overflow-hidden sm:max-w-2xl">
         <DialogHeader className="px-6 py-4 border-b bg-muted/50">
-          <DialogTitle className="text-xl font-semibold">Booking Details</DialogTitle>
+          <DialogTitle className="text-xl font-semibold">
+            Booking Details
+          </DialogTitle>
         </DialogHeader>
 
         <div className="overflow-y-auto max-h-[85vh] p-6 space-y-8">
@@ -53,14 +82,19 @@ export const BookingDetailDialog: React.FC<Props> = ({ bookingId, onClose }) => 
                 <span className="font-mono text-sm text-muted-foreground tracking-wider">
                   {booking.reference}
                 </span>
-                <Badge variant={STATUS_BADGE_VARIANT[booking.status] ?? "outline"} className="capitalize">
+                <Badge
+                  variant={STATUS_BADGE_VARIANT[booking.status] ?? "outline"}
+                  className="capitalize"
+                >
                   {statusLabel(booking.status)}
                 </Badge>
               </div>
 
               {/* Guest Information */}
               <section>
-                <h4 className="text-sm font-semibold mb-3 text-foreground">Guest Information</h4>
+                <h4 className="text-sm font-semibold mb-3 text-foreground">
+                  Guest Information
+                </h4>
                 <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
                   <div>
                     <dt className="text-muted-foreground mb-1">Full Name</dt>
@@ -71,7 +105,9 @@ export const BookingDetailDialog: React.FC<Props> = ({ bookingId, onClose }) => 
                     <dd>{booking.guestPhone}</dd>
                   </div>
                   <div>
-                    <dt className="text-muted-foreground mb-1">Email Address</dt>
+                    <dt className="text-muted-foreground mb-1">
+                      Email Address
+                    </dt>
                     <dd className="break-all">{booking.guestEmail || "—"}</dd>
                   </div>
                 </dl>
@@ -81,22 +117,30 @@ export const BookingDetailDialog: React.FC<Props> = ({ bookingId, onClose }) => 
 
               {/* Booking Information */}
               <section>
-                <h4 className="text-sm font-semibold mb-3 text-foreground">Booking Information</h4>
+                <h4 className="text-sm font-semibold mb-3 text-foreground">
+                  Booking Information
+                </h4>
                 <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
                   <div>
                     <dt className="text-muted-foreground mb-1">Room Type</dt>
                     <dd className="font-medium">{booking.roomTypeName}</dd>
                   </div>
                   <div>
-                    <dt className="text-muted-foreground mb-1">Number of Guests</dt>
+                    <dt className="text-muted-foreground mb-1">
+                      Number of Guests
+                    </dt>
                     <dd>{booking.guests}</dd>
                   </div>
                   <div>
-                    <dt className="text-muted-foreground mb-1">Check-in Date</dt>
+                    <dt className="text-muted-foreground mb-1">
+                      Check-in Date
+                    </dt>
                     <dd>{formatDateTime(booking.checkIn)}</dd>
                   </div>
                   <div>
-                    <dt className="text-muted-foreground mb-1">Check-out Date</dt>
+                    <dt className="text-muted-foreground mb-1">
+                      Check-out Date
+                    </dt>
                     <dd>{formatDateTime(booking.checkOut)}</dd>
                   </div>
                   <div>
@@ -105,7 +149,9 @@ export const BookingDetailDialog: React.FC<Props> = ({ bookingId, onClose }) => 
                   </div>
                   <div>
                     <dt className="text-muted-foreground mb-1">Checked In</dt>
-                    <dd className="font-medium">{booking.checkedIn ? "Yes" : "No"}</dd>
+                    <dd className="font-medium">
+                      {booking.checkedIn ? "Yes" : "No"}
+                    </dd>
                   </div>
                 </dl>
               </section>
@@ -114,10 +160,14 @@ export const BookingDetailDialog: React.FC<Props> = ({ bookingId, onClose }) => 
 
               {/* Payment Information */}
               <section>
-                <h4 className="text-sm font-semibold mb-3 text-foreground">Payment Information</h4>
+                <h4 className="text-sm font-semibold mb-3 text-foreground">
+                  Payment Information
+                </h4>
                 <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
                   <div>
-                    <dt className="text-muted-foreground mb-1">Price per Night</dt>
+                    <dt className="text-muted-foreground mb-1">
+                      Price per Night
+                    </dt>
                     <dd>{formatNaira(booking.pricePerNight)}</dd>
                   </div>
                   <div>
@@ -130,10 +180,14 @@ export const BookingDetailDialog: React.FC<Props> = ({ bookingId, onClose }) => 
                   </div>
                   <div>
                     <dt className="text-muted-foreground mb-1">Total Paid</dt>
-                    <dd className="font-semibold text-lg tracking-tight">{formatNaira(booking.amount)}</dd>
+                    <dd className="font-semibold text-lg tracking-tight">
+                      {formatNaira(booking.amount)}
+                    </dd>
                   </div>
                   <div className="sm:col-span-2">
-                    <dt className="text-muted-foreground mb-1">Provider Reference</dt>
+                    <dt className="text-muted-foreground mb-1">
+                      Provider Reference
+                    </dt>
                     <dd className="font-mono text-xs break-all text-muted-foreground">
                       {booking.reference || "—"}
                     </dd>
@@ -146,7 +200,9 @@ export const BookingDetailDialog: React.FC<Props> = ({ bookingId, onClose }) => 
                 <>
                   <Separator />
                   <section>
-                    <h4 className="text-sm font-semibold mb-3 text-foreground">Special Requests</h4>
+                    <h4 className="text-sm font-semibold mb-3 text-foreground">
+                      Special Requests
+                    </h4>
                     <div className="bg-muted/50 border rounded-lg p-4 text-sm">
                       {booking.specialRequests}
                     </div>
@@ -158,10 +214,15 @@ export const BookingDetailDialog: React.FC<Props> = ({ bookingId, onClose }) => 
 
               {/* Timeline */}
               <section>
-                <h4 className="text-sm font-semibold mb-3 text-foreground">Booking Timeline</h4>
+                <h4 className="text-sm font-semibold mb-3 text-foreground">
+                  Booking Timeline
+                </h4>
                 <div className="space-y-4">
                   {booking.timeline.map((event, index) => (
-                    <div key={index} className="flex justify-between items-center text-sm border-l-2 border-muted pl-4">
+                    <div
+                      key={index}
+                      className="flex justify-between items-center text-sm border-l-2 border-muted pl-4"
+                    >
                       <span>{event.label}</span>
                       <span className="text-xs text-muted-foreground tabular-nums">
                         {formatDateTime(event.at)}
@@ -172,13 +233,25 @@ export const BookingDetailDialog: React.FC<Props> = ({ bookingId, onClose }) => 
               </section>
 
               {/* Action Buttons */}
+              {/* Action Buttons */}
               {booking.validActions.length > 0 && (
                 <>
                   <Separator />
                   <div className="flex flex-wrap gap-3 pt-2">
                     {booking.validActions.includes("confirm") && (
-                      <Button onClick={() => confirm.mutate(booking.id)} disabled={isBusy} size="default">
-                        Confirm Booking
+                      <Button
+                        onClick={() => confirm.mutate(booking.id)}
+                        disabled={isBusy}
+                        size="default"
+                      >
+                        {confirm.isPending ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                            Confirming...
+                          </>
+                        ) : (
+                          "Confirm Booking"
+                        )}
                       </Button>
                     )}
 
@@ -188,7 +261,14 @@ export const BookingDetailDialog: React.FC<Props> = ({ bookingId, onClose }) => 
                         onClick={() => decline.mutate(booking.id)}
                         disabled={isBusy}
                       >
-                        Decline Booking
+                        {decline.isPending ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                            Declining...
+                          </>
+                        ) : (
+                          "Decline Booking"
+                        )}
                       </Button>
                     )}
 
@@ -198,7 +278,14 @@ export const BookingDetailDialog: React.FC<Props> = ({ bookingId, onClose }) => 
                         onClick={() => checkIn.mutate(booking.id)}
                         disabled={isBusy}
                       >
-                        Mark as Checked In
+                        {checkIn.isPending ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                            Updating...
+                          </>
+                        ) : (
+                          "Mark as Checked In"
+                        )}
                       </Button>
                     )}
 
@@ -208,7 +295,14 @@ export const BookingDetailDialog: React.FC<Props> = ({ bookingId, onClose }) => 
                         onClick={() => complete.mutate(booking.id)}
                         disabled={isBusy}
                       >
-                        Mark as Completed
+                        {complete.isPending ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                            Updating...
+                          </>
+                        ) : (
+                          "Mark as Completed"
+                        )}
                       </Button>
                     )}
                   </div>

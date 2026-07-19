@@ -4,7 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { MapPin } from 'lucide-react';
 import { formatEventSchedule } from '@/lib/eventSchedule';
 import type { EventSummary } from '@/lib/api/types';
-import { EventLikeShare } from '../EventLikeShare'; // Adjust path as needed
+import { EventLikeShare } from '../EventLikeShare';
+import { useAuth } from '@/context/AuthContext';
 
 interface Props {
   event: EventSummary;
@@ -21,6 +22,7 @@ export const DiscoverEventCard: React.FC<Props> = ({ event, onAuthRequired }) =>
   const navigate = useNavigate();
   const schedule = formatEventSchedule(event.schedule);
   const live = isEventLive(event);
+  const {user} = useAuth()
 
   return (
     <div
@@ -41,7 +43,8 @@ export const DiscoverEventCard: React.FC<Props> = ({ event, onAuthRequired }) =>
           />
 
           {/* Like button - Top Right */}
-          <div className="absolute top-3 right-3 z-10">
+          {
+            user && <div className="absolute top-3 right-3 z-10">
             <EventLikeShare
               eventId={event.id}
               eventTitle={event.title}
@@ -50,6 +53,7 @@ export const DiscoverEventCard: React.FC<Props> = ({ event, onAuthRequired }) =>
               onAuthRequired={onAuthRequired}
             />
           </div>
+          }
         </div>
 
         {/* Content Section - Grows to fill remaining height */}

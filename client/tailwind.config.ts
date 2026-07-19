@@ -16,6 +16,9 @@ export default {
       fontFamily: {
         sans: ['Host Grotesk', 'sans-serif'],
       },
+       screens: {
+      xs: "480px", // or 475px, 500px, etc.
+    },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

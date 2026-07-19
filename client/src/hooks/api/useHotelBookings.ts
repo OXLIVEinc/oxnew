@@ -23,13 +23,16 @@ export function useHotelBooking(id: string | undefined) {
 
 function useBookingAction(
   mutationFn: (id: string) => Promise<unknown>,
-  successMessage: string
+  successMessage: string,
+  // confirm/decline already surface a toast via the realtime socket event
+  // (see useHotelRealtime) — showing one here too would double it up.
+  options: { silent?: boolean } = {}
 ) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn,
     onSuccess: (_data, id) => {
-      toast.success(successMessage);
+      if (!options.silent) toast.success(successMessage);
       queryClient.invalidateQueries({ queryKey: queryKeys.hotel.bookings.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.hotel.bookings.detail(id as string) });
       queryClient.invalidateQueries({ queryKey: queryKeys.hotel.overview() });
@@ -41,11 +44,11 @@ function useBookingAction(
 }
 
 export function useConfirmBooking() {
-  return useBookingAction(bookingsApi.confirmBooking, "Booking confirmed");
+  return useBookingAction(bookingsApi.confirmBooking, "Booking confirmed", { silent: true });
 }
 
 export function useDeclineBooking() {
-  return useBookingAction(bookingsApi.declineBooking, "Booking declined");
+  return useBookingAction(bookingsApi.declineBooking, "Booking declined", { silent: true });
 }
 
 export function useCheckInBooking() {
