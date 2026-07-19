@@ -14,6 +14,7 @@ export type ConversationState =
   | 'EVENT_QTY'
   | 'EVENT_CHECKOUT_PENDING'
   | 'HOTEL_SEARCH'
+  | 'HOTEL_SEARCH_STATE'
   | 'HOTEL_SELECT'
   | 'HOTEL_SELECT_ROOM'
   | 'HOTEL_DATES'
@@ -31,16 +32,16 @@ export type ConversationState =
   | "HOTEL_HOME"
   | "HOTEL_CONFIRM_ACTION"
   | 'SUPPORT_CATEGORY'
-| 'SUPPORT_MESSAGE'
-| 'SUPPORT_ATTACHMENTS'
-| 'SUPPORT_ATTACHMENT_UPLOAD'
+  | 'SUPPORT_MESSAGE'
+  | 'SUPPORT_ATTACHMENTS'
+  | 'SUPPORT_ATTACHMENT_UPLOAD'
 
 export interface EventSearchResultItem {
   id: string;
   eventCode: string;
   name: string;
   dateLabel: string;
-  isPaid:boolean;
+  isPaid: boolean;
 }
 
 export interface HotelResultItem {
@@ -84,7 +85,7 @@ export interface ConversationContext {
   maxPerOrder?: number;
   tierOptions?: { id: string; label: string; price: number }[];
   roomCapacity?: number, // <-- add this
-   eventIsPaid?: boolean;
+  eventIsPaid?: boolean;
 
   tierId?: string;
   tierLabel?: string;
@@ -101,7 +102,9 @@ export interface ConversationContext {
   browseOffset?: number;
   searchResults?: EventSearchResultItem[];
 
-  // hotel flow
+  /// hotel flow
+  country?: string;
+  hotelState?: string;
   city?: string;
   hotelOffset?: number;
   hotelResults?: HotelResultItem[];
@@ -137,11 +140,11 @@ export interface ConversationContext {
   ticketTierLabel?: string;
   recipientPhone?: string;
 
-   hotelAction?: {
+  hotelAction?: {
     action: 'CONFIRM' | 'DECLINE';
     reference: string;
   };
-  
+
 
   // Stashed here while we ask "resume paused booking, or start this new
   // one?" (PAUSED_CHOICE state) — whichever the buyer picks, we either
@@ -154,12 +157,12 @@ export interface ConversationContext {
 
   supportCategory?: string;
 
-supportMessage?: string;
+  supportMessage?: string;
 
-supportImages?: SupportImage[];
+  supportImages?: SupportImage[];
 
-ticketOrderExpiresAt?: string;
-hotelOrderExpiresAt?: string;
+  ticketOrderExpiresAt?: string;
+  hotelOrderExpiresAt?: string;
 }
 
 export interface Session {

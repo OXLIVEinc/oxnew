@@ -22,6 +22,7 @@ export async function updateProfile(profileId: string, patch: ProfilePatch) {
     .update(hotelPartners)
     .set({
       ...(patch.name !== undefined && { name: patch.name }),
+      ...(patch.country !== undefined && { country: patch.country }),
       ...(patch.description !== undefined && { description: patch.description }),
       ...(patch.logoUrl !== undefined && { logoUrl: patch.logoUrl }),
       ...(patch.coverImageUrl !== undefined && { coverImageUrl: patch.coverImageUrl }),

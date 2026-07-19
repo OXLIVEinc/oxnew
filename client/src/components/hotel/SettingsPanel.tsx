@@ -63,7 +63,7 @@ export const SettingsPanel: React.FC<{ onGoToProfile: () => void }> = ({ onGoToP
 
   return (
     <div className="space-y-6 max-w-2xl">
-      <Card>
+      {/* <Card>
         <CardHeader>
           <CardTitle className="text-base">Password</CardTitle>
           <CardDescription>Update the password used to sign in to this dashboard.</CardDescription>
@@ -83,7 +83,7 @@ export const SettingsPanel: React.FC<{ onGoToProfile: () => void }> = ({ onGoToP
             Update Password
           </Button>
         </CardContent>
-      </Card>
+      </Card> */}
 
       <Card>
         <CardHeader>

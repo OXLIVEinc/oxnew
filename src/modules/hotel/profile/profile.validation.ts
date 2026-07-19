@@ -24,4 +24,5 @@ export const updateHotelProfileSchema = z.object({
     .nullable(),
   locationLat: z.coerce.number().min(-90).max(90).optional(),
   locationLng: z.coerce.number().min(-180).max(180).optional(),
+  country: z.string().trim().min(1).max(100).optional(),
 });

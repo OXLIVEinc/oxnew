@@ -2,33 +2,53 @@ import * as db from '../../data/db';
 import { naira, asNumberChoice, isMoreCommand, formatDate, FALLBACK } from '../helpers';
 import { parseFriendlyDate, friendlyDateFormatHint } from '../../lib/datetime';
 import { ConversationContext, FlowResult, HotelResultItem } from '../../types';
-import { sendMessage,sendReplyButtonsMessage } from '../messenger';
+import { sendMessage, sendReplyButtonsMessage } from '../messenger';
 import { getExpiryFooter } from '../helpers';
 
 const CHECKOUT_BASE_URL = process.env.CHECKOUT_BASE_URL || 'https://ox.app';
 
-// city -> paginated list of hotels (10 at a time, MORE for the next page)
-export async function handleCityInput(text: string): Promise<FlowResult> {
-  const city = text.trim();
-  return renderHotelsPage(city, await db.searchHotels(city, 0));
+// Step 1: country
+export async function handleCountryInput(text: string): Promise<FlowResult> {
+  const country = text.trim();
+  if (!country) return { reply: FALLBACK() };
+
+  return {
+    nextState: 'HOTEL_SEARCH_STATE',
+    contextPatch: { country },
+    reply: `Got it — ${country}.\n\nWhich state or region? (e.g. Lagos, Greater Accra, London)`,
+  };
 }
 
-export async function handleCityResultsMore(context: ConversationContext): Promise<FlowResult> {
-  const city = context.city || '';
+// Step 2: state -> first page of hotels in country+state
+export async function handleStateInput(text: string, context: ConversationContext): Promise<FlowResult> {
+  const hotelState = text.trim();
+  if (!hotelState || !context.country) return { reply: FALLBACK() };
+
+  return renderHotelsPage(context.country, hotelState, await db.searchHotels(context.country, hotelState, 0));
+}
+
+export async function handleStateResultsMore(context: ConversationContext): Promise<FlowResult> {
+  const country = context.country || '';
+  const hotelState = context.hotelState || '';
   const offset = context.hotelOffset ?? 0;
-  return renderHotelsPage(city, await db.searchHotels(city, offset), true);
+  return renderHotelsPage(country, hotelState, await db.searchHotels(country, hotelState, offset), true);
 }
 
-async function renderHotelsPage(city: string, page: db.Page<db.HotelPartnerRow>, isMorePage = false): Promise<FlowResult> {
+async function renderHotelsPage(
+  country: string,
+  hotelState: string,
+  page: db.Page<db.HotelPartnerRow>,
+  isMorePage = false
+): Promise<FlowResult> {
   if (page.items.length === 0 && !isMorePage) {
     return {
       reply:
-        `We don't have hotels listed in "${city}" yet.\n\n` +
-        `Try another city (Lagos, Abuja) or type MENU to go back.`,
+        `We don't have hotels listed in ${hotelState}, ${country} yet.\n\n` +
+        `Try another state or country, or type MENU to go back.`,
     };
   }
   if (page.items.length === 0 && isMorePage) {
-    return { reply: `That's every hotel we have in ${city}. Type MENU for more options.` };
+    return { reply: `That's every hotel we have in ${hotelState}, ${country}. Type MENU for more options.` };
   }
 
   const results: HotelResultItem[] = page.items.map((h) => ({ id: h.id, name: h.name }));
@@ -37,14 +57,14 @@ async function renderHotelsPage(city: string, page: db.Page<db.HotelPartnerRow>,
 
   return {
     nextState: 'HOTEL_SELECT',
-    contextPatch: { city, hotelResults: results, hotelOffset: page.nextOffset },
-    reply: `Hotels in ${city}:\n\n${list}${more}\n\nReply with a number to select.`,
+    contextPatch: { country, hotelState, hotelResults: results, hotelOffset: page.nextOffset },
+    reply: `Hotels in ${hotelState}, ${country}:\n\n${list}${more}\n\nReply with a number to select.`,
   };
 }
 
 // hotel choice, or MORE -> list of room types
 export async function handleHotelSelection(text: string, context: ConversationContext): Promise<FlowResult> {
-  if (isMoreCommand(text)) return handleCityResultsMore(context);
+  if (isMoreCommand(text)) return handleStateResultsMore(context);
 
   const hotels = context.hotelResults || [];
   const choice = asNumberChoice(text, 1, hotels.length);

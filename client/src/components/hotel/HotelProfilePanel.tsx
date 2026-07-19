@@ -18,18 +18,20 @@ export const HotelProfilePanel: React.FC = () => {
   const update = useUpdateHotelProfile();
 
   const [form, setForm] = useState({
-    name: "",
-    description: "",
-    logoUrl: "",
-    coverImageUrl: "",
-    address: "",
-    state: "",
-    city: "",
-    whatsappNumber: "",
-    bankName: "",
-    accountNumber: "",
-    accountName: "",
-  });
+  name: "",
+  description: "",
+  logoUrl: "",
+  coverImageUrl: "",
+  address: "",
+  country: "",
+  state: "",
+  city: "",
+  whatsappNumber: "",
+  bankName: "",
+  accountNumber: "",
+  accountName: "",
+});
+
   const [amenities, setAmenities] = useState<string[]>([]);
   const [newAmenity, setNewAmenity] = useState("");
 
@@ -41,8 +43,10 @@ export const HotelProfilePanel: React.FC = () => {
         logoUrl: hotel.logoUrl ?? "",
         coverImageUrl: hotel.coverImageUrl ?? "",
         address: hotel.address ?? "",
-        state: hotel.state ?? "",
-        city: hotel.city ?? "",
+
+country: hotel.country ?? "",
+state: hotel.state ?? "",
+city: hotel.city ?? "",
         whatsappNumber: hotel.whatsappNumber ?? "",
         bankName: hotel.bankAccountDetails?.bankName ?? "",
         accountNumber: hotel.bankAccountDetails?.accountNumber ?? "",
@@ -68,8 +72,9 @@ export const HotelProfilePanel: React.FC = () => {
       logoUrl: form.logoUrl || null,
       coverImageUrl: form.coverImageUrl || null,
       address: form.address,
-      state: form.state,
-      city: form.city,
+              country: form.country,
+state: form.state,
+city: form.city,
       whatsappNumber: form.whatsappNumber,
       amenities,
       bankAccountDetails:
@@ -126,16 +131,20 @@ export const HotelProfilePanel: React.FC = () => {
               <Label>Address</Label>
               <Input value={form.address} onChange={set("address")} />
             </div>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>State</Label>
-                <Input value={form.state} onChange={set("state")} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>City</Label>
-                <Input value={form.city} onChange={set("city")} />
-              </div>
-            </div>
+            <div className="grid sm:grid-cols-3 gap-4">
+  <div className="space-y-1.5">
+    <Label>Country</Label>
+    <Input value={form.country} onChange={set("country")} />
+  </div>
+  <div className="space-y-1.5">
+    <Label>State</Label>
+    <Input value={form.state} onChange={set("state")} />
+  </div>
+  <div className="space-y-1.5">
+    <Label>City</Label>
+    <Input value={form.city} onChange={set("city")} />
+  </div>
+</div>
             <div className="space-y-1.5">
               <Label>WhatsApp Number</Label>
               <Input value={form.whatsappNumber} onChange={set("whatsappNumber")} />

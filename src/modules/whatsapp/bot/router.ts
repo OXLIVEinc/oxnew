@@ -270,9 +270,12 @@ export async function handleMessage(phone: string, text: string, waName?: string
             : undefined,
       };
 
-    case 'HOTEL_SEARCH':
-      return apply(phone, await hotelFlow.handleCityInput(trimmed));
+   case 'HOTEL_SEARCH':
+  return apply(phone, await hotelFlow.handleCountryInput(trimmed));
 
+case 'HOTEL_SEARCH_STATE':
+  return apply(phone, await hotelFlow.handleStateInput(trimmed, context));
+  
     case 'HOTEL_SELECT':
       return apply(phone, await hotelFlow.handleHotelSelection(trimmed, context));
 

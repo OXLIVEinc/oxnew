@@ -22,13 +22,13 @@ export const DiscoverEventCard: React.FC<Props> = ({ event }) => {
 
   return (
     <div
-      className="group  cursor-pointer h-full"
+      className="groupcursor-pointer h-full"
       onClick={() => navigate(`/event/${event.id}`)}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => e.key === 'Enter' && navigate(`/event/${event.id}`)}
     >
-      <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border transition-all hover:shadow-md">
+      <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-border transition-all hover:shadow-md">
         {/* Image Section - Fixed aspect ratio */}
         <div className="aspect-video bg-muted overflow-hidden flex-shrink-0">
           <img

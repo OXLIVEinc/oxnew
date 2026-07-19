@@ -338,6 +338,7 @@ export const hotelPartners = pgTable("hotel_partners", {
   // Hotel information
   name: text("name").notNull(),
   state: text("state").notNull(),
+  country: text("country").notNull().default("Nigeria"),
   city: text("city").notNull(),
   address: text("address").notNull(),
 

@@ -134,8 +134,9 @@ export interface HotelProfile {
   id: string;
   userId: string | null;
   name: string;
-  state: string;
-  city: string;
+  state?: string;
+country?: string;
+city?: string;
   address: string;
   locationLat: string;
   locationLng: string;
@@ -157,13 +158,14 @@ export interface HotelProfileInput {
   logoUrl?: string | null;
   coverImageUrl?: string | null;
   address?: string;
-  state?: string;
-  city?: string;
   whatsappNumber?: string;
   amenities?: string[];
   bankAccountDetails?: HotelBankAccountDetails | null;
   locationLat?: number;
   locationLng?: number;
+  state: string;
+country: string;
+city: string;
 }
 
 export interface AnalyticsMonthPoint {

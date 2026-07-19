@@ -38,10 +38,10 @@ export function handleMainMenuInput(text: string): FlowResult {
           `Type MENU to go back.`
       };
     case 2:
-      return {
-        nextState: 'HOTEL_SEARCH',
-        reply: `Which city are you booking in? (e.g. Lagos, Abuja)`,
-      };
+  return {
+    nextState: 'HOTEL_SEARCH',
+    reply: `Which country are you booking in? (e.g. Nigeria, Ghana, United Kingdom)`,
+  };
     case 3:
       return { nextState: 'TRANSFER_INIT' };
     case 4:

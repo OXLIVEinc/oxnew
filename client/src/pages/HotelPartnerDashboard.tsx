@@ -91,7 +91,7 @@ const HotelPartnerDashboard: React.FC = () => {
       />
 
       <main className="flex-1 min-w-0">
-        <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-sm border-b border-border px-4 sm:px-6 lg:px-8 h-[4.5rem] flex items-center gap-4">
+        <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-sm border-b border-border px-4 sm:px-6 lg:px-8 h-[5.05rem] flex items-center gap-4">
           <button
             onClick={() => setSidebarOpen(true)}
             className="lg:hidden p-2 -ml-2 rounded-md hover:bg-accent text-foreground"

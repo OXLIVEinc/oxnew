@@ -17,9 +17,8 @@ interface NavLinkItem {
 const PRIMARY_LINKS: NavLinkItem[] = [
   { label: 'Discover', to: '/' },
   { label: 'About', to: '/about' },
-  { label: 'Help', to: `/help` },
+  { label: 'Help', to: '/help' },
 ];
-
 export const Navbar: React.FC = () => {
   const { user, role, isOrganizer, isHotelPartner } = useAuth();
   const [isAuthOpen, setIsAuthOpen] = useState(false);
@@ -45,6 +44,10 @@ export const Navbar: React.FC = () => {
   };
 
   const dashboardLabel = getDashboardLabel();
+
+  const visibleLinks = user
+  ? PRIMARY_LINKS.filter((item) => item.label === 'Discover')
+  : PRIMARY_LINKS;
 
   const requireAuthThen = (path: string) => {
     if (user) navigate(path);
@@ -97,9 +100,9 @@ export const Navbar: React.FC = () => {
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center">
-          {PRIMARY_LINKS.map((item) => (
-            <NavPill key={item.label} item={item} />
-          ))}
+          {visibleLinks.map((item) => (
+  <NavPill key={item.label} item={item} />
+))}
 
           {isOrganizer && (
             <button

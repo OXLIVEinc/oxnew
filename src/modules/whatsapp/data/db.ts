@@ -497,11 +497,22 @@ function approvedHotelFilter() {
   return eq(schema.hotelPartners.approvalStatus, "approved");
 }
 
-export async function searchHotels(city: string, offset = 0, limit = PAGE_SIZE): Promise<Page<HotelPartnerRow>> {
+export async function searchHotels(
+  country: string,
+  hotelState: string,
+  offset = 0,
+  limit = PAGE_SIZE
+): Promise<Page<HotelPartnerRow>> {
   const rows = await db
     .select()
     .from(schema.hotelPartners)
-    .where(and(approvedHotelFilter(), ilike(schema.hotelPartners.city, `%${city.trim()}%`)))
+    .where(
+      and(
+        approvedHotelFilter(),
+        ilike(schema.hotelPartners.country, `%${country.trim()}%`),
+        ilike(schema.hotelPartners.state, `%${hotelState.trim()}%`)
+      )
+    )
     .orderBy(asc(schema.hotelPartners.name))
     .limit(limit + 1)
     .offset(offset);
