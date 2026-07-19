@@ -16,7 +16,7 @@ interface NavLinkItem {
 
 const PRIMARY_LINKS: NavLinkItem[] = [
   { label: 'Discover', to: '/' },
-  { label: 'About', to: '/about' },
+  // { label: 'About', to: '/about' },
   { label: 'Help', to: '/help' },
 ];
 export const Navbar: React.FC = () => {

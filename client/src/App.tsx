@@ -40,7 +40,7 @@ const routes: RouteConfig[] = [
   { path: "/organizer/:id", element: <OrganizerProfile /> },
   { path: "/pricing", element: <Pricing /> },
   { path: "/admin", element: <Admin /> },
-  { path: "/about", element: <About /> },
+  // { path: "/about", element: <About /> },
   { path: "/help", element: <Help /> },
   { path: "/checkout/:orderId", element: <CheckoutPage /> },
   { path: "/hotel-order/:orderId", element: <HotelOrderPage /> },
