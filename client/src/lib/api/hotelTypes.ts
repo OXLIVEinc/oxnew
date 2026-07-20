@@ -1,10 +1,3 @@
-/**
- * src/lib/api/hotelTypes.ts
- * -------------------------------------------------------------------------
- * Types for the Hotel Partner Dashboard API. Mirrors the shapes returned by
- * server/modules/hotel/**.
- * -------------------------------------------------------------------------
- */
 export type BookingTab =
   | "pending"
   | "paid_awaiting_confirmation"
@@ -37,7 +30,6 @@ export interface HotelBooking {
   amount: string;
   currency: string;
   paymentProvider: string | null;
-  paystackReference: string | null;
   createdAt: string;
   updatedAt: string;
   paidAt: string | null;
