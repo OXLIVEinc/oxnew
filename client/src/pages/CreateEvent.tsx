@@ -494,7 +494,7 @@ const CreateEvent = () => {
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full border border-black justify-start h-12"
+                    className="w-full border rounded-none border-black justify-start h-12"
                     onClick={() => setShowMapModal(true)}
                   >
                     <MapPin className="mr-2 h-4 w-4" />
