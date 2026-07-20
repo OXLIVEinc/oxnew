@@ -3,6 +3,7 @@ import { asNumberChoice, FALLBACK } from '../helpers';
 import { ConversationContext, FlowResult } from '../../types';
 import { sendMessage, sendCtaUrlMessage } from '../messenger';
 
+
 const CHECKOUT_BASE_URL = process.env.CHECKOUT_BASE_URL || 'https://ox.app';
 
 export async function initTransfer(phone: string): Promise<FlowResult> {
@@ -74,13 +75,32 @@ export async function handleRecipientPhone(text: string, context: ConversationCo
       `2. No - cancel`,
   };
 }
-
-export async function handleConfirm(text: string, context: ConversationContext, phone: string): Promise<FlowResult> {
+export async function handleConfirm(
+  text: string,
+  context: ConversationContext,
+  phone: string
+): Promise<FlowResult> {
   const choice = asNumberChoice(text, 1, 2);
   if (choice === null) return { reply: FALLBACK() };
 
   if (choice === 2) {
-    return { nextState: 'MAIN_MENU', reply: `No problem, transfer cancelled. Type MENU for options.` };
+    return {
+      nextState: "MAIN_MENU",
+      reply: `No problem, transfer cancelled. Type MENU for options.`,
+    };
+  }
+
+  // Prevent transfers to hotel partner numbers
+  const recipientHotelPartner = await db.findHotelByWhatsappNumber(
+    context.recipientPhone!
+  );
+
+  if (recipientHotelPartner) {
+    return {
+      reply:
+        `Sorry, tickets can't be transferred to hotel partner WhatsApp numbers.\n\n` +
+        `Please enter the recipient's personal WhatsApp number and try again.`,
+    };
   }
 
   const transfer = await db.createTicketTransfer({
@@ -96,14 +116,15 @@ export async function handleConfirm(text: string, context: ConversationContext, 
     `Someone sent you a ticket for ${context.ticketEventName} (${context.ticketTierLabel}).\n\n` +
       `Tap below to claim it - you'll just need to enter your full name and email. This link expires in 24 hours.`
   );
+
   await sendCtaUrlMessage(context.recipientPhone!, {
-    footerText: 'Expires in 24 hours',
-    buttonText: 'Claim Ticket',
+    footerText: "Expires in 24 hours",
+    buttonText: "Claim Ticket",
     url: claimLink,
   });
 
   return {
-    nextState: 'MAIN_MENU',
+    nextState: "MAIN_MENU",
     reply:
       `Transfer sent. We've messaged ${context.recipientPhone} with a link to claim it.\n\n` +
       `You'll get a notification here as soon as they confirm. Type MENU for more options.`,

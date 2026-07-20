@@ -15,10 +15,6 @@ export function generateCheckInCode(): string {
   );
 }
 
-/**
- * Deep-link / shareable event code.
- * Format: OX-<SLUG>-<YEAR>-<SHORTCODE>, e.g. OX-AFROBEATS-NIGHT-2026-A1B2C3
- */
 export function generateEventCode(slug: string, year = new Date().getFullYear()): string {
   const cleanSlug = slug
     .toUpperCase()
@@ -30,13 +26,8 @@ export function generateEventCode(slug: string, year = new Date().getFullYear())
   return `OX-${cleanSlug}-${year}-${shortCode}`;
 }
 
-export function nextOrderReference(prefix: string): string {
-  return `${prefix}-${Date.now().toString(36).toUpperCase()}-${nanoid(6).toUpperCase()}`;
-}
 
-export function nextHotelReference(): string {
-  return `OX-HTL-${Date.now().toString(36).toUpperCase()}-${nanoid(6).toUpperCase()}`;
-}
+export { generateReference } from "@/utils/helpers";
 
 export function nextTransferCode(): string {
   return nanoid(10).toUpperCase();

@@ -270,7 +270,6 @@ export const ticketOrders = pgTable("ticket_orders", {
   paymentProvider: text("payment_provider").notNull().default("paystack"),
   accessCode: text("access_code"),
   authorizationUrl: text("authorization_url"),
-  paystackReference: text("paystack_reference"),
 
   // Post-purchase engagement tracking, so delayed jobs never double-send.
   hotelUpsellSentAt: timestamp("hotel_upsell_sent_at", { withTimezone: true }),
@@ -440,11 +439,10 @@ export const hotelOrders = pgTable("hotel_orders", {
   subtotal: numeric("subtotal", { precision: 10, scale: 2 }).notNull(),
   serviceFee: numeric("service_fee", { precision: 10, scale: 2 }).notNull().default("0"),
   status: hotelOrderStatusEnum("status").notNull().default("pending"),
-  orderSource: orderSourceEnum("order_source").notNull().default("web"),
+  orderSource: orderSourceEnum("order_source").notNull().default("whatsapp"),
   paymentProvider: text("payment_provider").notNull().default("paystack"),
   accessCode: text("access_code"),
   authorizationUrl: text("authorization_url"),
-  paystackReference: text("paystack_reference"),
 
   expiresAt: timestamp("expires_at", { withTimezone: true }),
   paidAt: timestamp("paid_at", { withTimezone: true }),

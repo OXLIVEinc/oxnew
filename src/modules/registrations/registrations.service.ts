@@ -5,7 +5,7 @@ import { events, ticketTiers, eventRegistrations, tickets, ticketOrders, profile
 import { AppError } from "@/middleware/error.middleware";
 import { isTierSoldOut, toEventSchedule } from "@/modules/events/events.repository";
 import { createTicketQr } from "@/lib/qr/create-ticket-qr";
-import { generateOrderReference } from "@/utils/helpers";
+import { generateReference } from "@/utils/helpers";
 
 export interface RegisterInput {
   eventId: string;
@@ -81,7 +81,7 @@ export async function registerForEvent(profileId: string, input: RegisterInput) 
     const [order] = await db
       .insert(ticketOrders)
       .values({
-        reference: generateOrderReference("ord"),
+        reference: generateReference("OX-ORD"),
         userId: profileId,
         phone: input.attendeePhone ?? profile?.phone ?? "",
         eventId: event.id,
@@ -262,7 +262,7 @@ export async function createEventOrder(profileId: string, input: CreateOrderInpu
   const [order] = await db
     .insert(ticketOrders)
     .values({
-      reference: generateOrderReference("ord"),
+      reference: generateReference("OX-ORD"),
       userId: profileId,
       phone: profile?.phone ?? "",
       eventId: input.eventId,

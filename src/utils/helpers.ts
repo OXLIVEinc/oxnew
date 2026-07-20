@@ -46,10 +46,13 @@ export function generateEventCode(slug: string, year = new Date().getFullYear())
 /**
  * Generates a unique order/ticket-order reference for Paystack.
  */
-export function generateOrderReference(prefix: string): string {
-  return `${prefix}_${Date.now()}_${crypto.randomBytes(4).toString("hex")}`;
-}
 
+//  * Canonical reference generator for every order/booking in the system.
+//  * Format: OX-<PREFIX>-<TIMESTAMP36>-<NANOID6>, e.g. "OX-ORD-MRPDINZI-RY8K2X".
+//  */
+export function generateReference(prefix: "OX-ORD" | "OX-HTL"): string {
+  return `${prefix}-${Date.now().toString(36).toUpperCase()}-${nanoid(6).toUpperCase()}`;
+}
 
 export function normalizePhone(phone: string): string {
   return phone.replace(/^\+/, "").trim();

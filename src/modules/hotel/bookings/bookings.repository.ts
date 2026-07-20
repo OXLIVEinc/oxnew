@@ -27,7 +27,6 @@ function bookingSelection() {
     amount: hotelOrders.amount,
     currency: hotelOrders.currency,
     paymentProvider: hotelOrders.paymentProvider,
-    paystackReference: hotelOrders.paystackReference,
     createdAt: hotelOrders.createdAt,
     updatedAt: hotelOrders.updatedAt,
     paidAt: hotelOrders.paidAt,

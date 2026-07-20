@@ -3,13 +3,13 @@ import { db } from "../db/client";
 import * as schema from "../../../../shared/schema";
 import { OrderItem } from "../../../../shared/schema";
 import { initializeTransaction } from "../lib/paystack";
-import { nextOrderReference, nextHotelReference, nextTransferCode } from "../lib/ids";
+import { nextTransferCode } from "../lib/ids";
 import { createTicketQr } from "../lib/qr/create-ticket-qr";
 import { distanceKm } from "../lib/geocode";
 import { sendMessage, sendImageMessage } from "../bot/messenger";
 import { HotelOrderWithDetails } from "../../../../shared/schema";
 import { getTableColumns } from "drizzle-orm";
-
+import { generateReference } from "../lib/ids";
 
 export type EventRow = schema.Event;
 export type TicketTierRow = schema.TicketTier;
@@ -306,7 +306,7 @@ export async function createTicketOrder(input: CreateTicketOrderInput): Promise<
   const subtotal = input.unitPrice * input.quantity;
   const serviceFee = subtotal * serviceFeeRate;
   const amount = subtotal + serviceFee;
-  const reference = nextOrderReference("OX-ORD");
+  const reference = generateReference("OX-ORD");
 
   const [order] = await db
     .insert(schema.ticketOrders)
@@ -375,7 +375,6 @@ export async function submitOrderItems(orderId: string, items: OrderItem[]): Pro
       status: "awaiting_payment",
       accessCode: payment.accessCode,
       authorizationUrl: payment.authorizationUrl,
-      paystackReference: payment.reference,
       updatedAt: new Date(),
     })
     .where(eq(schema.ticketOrders.id, orderId))
@@ -614,7 +613,7 @@ export async function createHotelOrder(input: CreateHotelOrderInput): Promise<Ho
   const subtotal = input.pricePerNight * input.nights;
   const serviceFee = subtotal * serviceFeeRate;
   const amount = subtotal + serviceFee;
-  const reference = nextHotelReference();
+  const reference =  generateReference("OX-HTL")
 
 
 
@@ -710,7 +709,6 @@ export async function initiateHotelOrderPayment(orderId: string, email: string):
       status: "awaiting_payment",
       accessCode: payment.accessCode,
       authorizationUrl: payment.authorizationUrl,
-      paystackReference: payment.reference,
       updatedAt: new Date(),
     })
     .where(eq(schema.hotelOrders.id, orderId))
