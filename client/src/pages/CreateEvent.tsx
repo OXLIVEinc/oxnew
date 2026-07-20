@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -487,14 +487,14 @@ const CreateEvent = () => {
                 </div>
               </div>
 
-              {/* Location */}
+
               {/* Location Section */}
               <div className="relative">
                 {
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full justify-start h-12"
+                    className="w-full border border-black justify-start h-12"
                     onClick={() => setShowMapModal(true)}
                   >
                     <MapPin className="mr-2 h-4 w-4" />
@@ -613,7 +613,7 @@ const CreateEvent = () => {
             onSave={(lat, lng, address) => {
               setLocationLat(lat);
               setLocationLng(lng);
-              setLocation(address || location); // Use reverse-geocoded address if available
+              setLocation(address || location); 
               setShowMapModal(false);
               toast.success("Location selected successfully");
             }}

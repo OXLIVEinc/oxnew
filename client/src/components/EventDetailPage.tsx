@@ -58,7 +58,7 @@ export const EventDetailPage: React.FC = () => {
     asideRef.current?.scrollBy({ top: e.deltaY, behavior: 'auto' });
   };
 
-  const [randomGradient, setRandomGradient] = useState('');
+  const [_, setRandomGradient] = useState('');
   const [randomOverlay, setRandomOverlay] = useState('');
 
   useEffect(() => {
