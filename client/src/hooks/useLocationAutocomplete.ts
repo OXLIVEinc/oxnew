@@ -3,22 +3,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 /**
  * src/hooks/usePhotonAutocomplete.ts
  * -------------------------------------------------------------------------
- * Free, keyless address autocomplete backed by Photon (https://photon.komoot.io),
- * a geocoder built on OpenStreetMap data. Replaces the paid Google Places
- * Autocomplete API — no billing, no API key.
- *
- * Usage:
- *   const { suggestions, loading, search, clear } = usePhotonAutocomplete();
- *   search("victoria island lagos")
- *   // suggestions -> PhotonSuggestion[]
- *
- * Notes:
- *   - Debounced by DEBOUNCE_MS so we don't fire a request per keystroke.
- *   - In-flight requests are aborted when a newer query comes in, so a slow
- *     response for an old keystroke can never overwrite a newer result.
- *   - Photon is a shared public instance — be reasonable with request volume.
- *     If you outgrow it, the same API shape can point at a self-hosted
- *     Photon/Nominatim instance later with zero component changes.
+ * Free, keyless address autocomplete backed by Photon.
+ * Enhanced to better support "Can't find your venue? 📍 Pick on map" flow.
  * -------------------------------------------------------------------------
  */
 
@@ -29,7 +15,6 @@ const RESULT_LIMIT = 5;
 
 export interface PhotonSuggestion {
   id: string;
-  /** Human-readable label built from Photon's address parts, e.g. "Landmark Beach, Oniru, Lagos, Nigeria" */
   label: string;
   lat: number;
   lng: number;
@@ -37,7 +22,7 @@ export interface PhotonSuggestion {
 }
 
 interface PhotonFeature {
-  geometry: { coordinates: [number, number] }; // [lon, lat]
+  geometry: { coordinates: [number, number] };
   properties: {
     name?: string;
     housenumber?: string;
@@ -57,8 +42,8 @@ interface PhotonResponse {
 
 function buildLabel(props: PhotonFeature['properties']): string {
   const parts: string[] = [];
-
   const streetPart = [props.housenumber, props.street].filter(Boolean).join(' ');
+
   if (props.name && props.name !== streetPart) parts.push(props.name);
   if (streetPart) parts.push(streetPart);
   if (props.district && props.district !== props.city) parts.push(props.district);
@@ -66,13 +51,13 @@ function buildLabel(props: PhotonFeature['properties']): string {
   if (props.state && props.state !== props.city) parts.push(props.state);
   if (props.country) parts.push(props.country);
 
-  // De-dupe consecutive identical parts (Photon sometimes repeats name/city).
   return parts.filter((p, i) => p !== parts[i - 1]).join(', ');
 }
 
 function toSuggestion(feature: PhotonFeature, index: number): PhotonSuggestion {
   const [lng, lat] = feature.geometry.coordinates;
   const idSeed = feature.properties.osm_id ?? index;
+
   return {
     id: `${feature.properties.osm_type ?? 'f'}-${idSeed}-${index}`,
     label: buildLabel(feature.properties) || 'Unknown location',
@@ -86,6 +71,7 @@ export function usePhotonAutocomplete() {
   const [suggestions, setSuggestions] = useState<PhotonSuggestion[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showMapPrompt, setShowMapPrompt] = useState(false);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -97,19 +83,25 @@ export function usePhotonAutocomplete() {
 
     setLoading(true);
     setError(null);
+    setShowMapPrompt(false);
 
     try {
       const url = `${PHOTON_BASE_URL}?q=${encodeURIComponent(query)}&limit=${RESULT_LIMIT}`;
       const res = await fetch(url, { signal: controller.signal });
+
       if (!res.ok) throw new Error(`Photon request failed: ${res.status}`);
 
       const data = (await res.json()) as PhotonResponse;
       const results = (data.features || []).map(toSuggestion);
+
       setSuggestions(results);
+      setShowMapPrompt(results.length === 0); // Show "Pick on map" prompt when no results
     } catch (err) {
-      if ((err as Error).name === 'AbortError') return; // superseded by a newer search
-      setError('Could not load location suggestions. You can still type the address manually.');
+      if ((err as Error).name === 'AbortError') return;
+
+      setError('Could not load location suggestions.');
       setSuggestions([]);
+      setShowMapPrompt(true); // Still offer map as fallback
     } finally {
       if (abortRef.current === controller) setLoading(false);
     }
@@ -122,6 +114,7 @@ export function usePhotonAutocomplete() {
       const trimmed = query.trim();
       if (trimmed.length < MIN_QUERY_LENGTH) {
         setSuggestions([]);
+        setShowMapPrompt(false);
         setLoading(false);
         return;
       }
@@ -137,6 +130,12 @@ export function usePhotonAutocomplete() {
     setSuggestions([]);
     setLoading(false);
     setError(null);
+    setShowMapPrompt(false);
+  }, []);
+
+  // New: Force show map prompt (useful when user clicks "Can't find your venue?")
+  const showManualMapOption = useCallback(() => {
+    setShowMapPrompt(true);
   }, []);
 
   useEffect(() => {
@@ -146,5 +145,13 @@ export function usePhotonAutocomplete() {
     };
   }, []);
 
-  return { suggestions, loading, error, search, clear };
+  return {
+    suggestions,
+    loading,
+    error,
+    showMapPrompt,           // ← New: tells UI to show "Can't find your venue?" prompt
+    search,
+    clear,
+    showManualMapOption,     // ← New: call this when user clicks the map button
+  };
 }

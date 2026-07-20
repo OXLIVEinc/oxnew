@@ -162,7 +162,7 @@ export const EventDetailPage: React.FC = () => {
           aria-label="Event background image"
         >
           {/* Mobile: Full-bleed image, no gradient */}
-          <div className="relative w-full h-[65vh] lg:hidden">
+          <div className="relative w-full h-[40vh] lg:hidden">
             <img
               src={bgImage}
               alt={event.title}

@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { usePhotonAutocomplete } from "@/hooks/useLocationAutocomplete";
+import LocationMapModal from "@/components/LocationMapModal"; // ← Create this file
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -40,7 +40,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LocationSuggestions } from "@/components/LocationSuggestion";
+import { MapPin } from "lucide-react";
 
 const eventSchema = z.object({
   eventName: z.string().trim().min(1, "Event name is required").max(200),
@@ -241,16 +241,9 @@ const CreateEvent = () => {
   const [venueMapPreview, setVenueMapPreview] = useState<string | null>(null);
   const [venueMapFile, setVenueMapFile] = useState<File | null>(null);
 
-  const locationInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
-  
-  const {
-    suggestions,
-    loading: isLoading,
-    search,
-    clear,
-    error,
-  } = usePhotonAutocomplete();
+
+  const [showMapModal, setShowMapModal] = useState(false);
 
   const createEvent = useCreateEvent();
   const { authUser: user } = useAuth();
@@ -495,37 +488,26 @@ const CreateEvent = () => {
               </div>
 
               {/* Location */}
-              {/* Location */}
+              {/* Location Section */}
               <div className="relative">
-                <input
-                  ref={locationInputRef}
-                  type="text"
-                  placeholder="Add event location (e.g. Lagos, Nigeria)"
-                  className="w-full px-3 md:px-4 py-2 md:py-3 text-[14px] md:text-[17px] text-black border border-black focus:outline-none placeholder:text-[#C4C4C4]"
-                  value={location}
-                  onChange={(e) => {
-                    const value = e.target.value;
+                {
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full justify-start h-12"
+                    onClick={() => setShowMapModal(true)}
+                  >
+                    <MapPin className="mr-2 h-4 w-4" />
 
-                    setLocation(value);
-                    setLocationLat(null);
-                    setLocationLng(null);
-
-                    search(value);
-                  }}
-                />
-
-                {/* Suggestions Dropdown */}
-                <LocationSuggestions
-                  suggestions={suggestions}
-                  loading={isLoading}
-                  error={error}
-                  onSelect={(place) => {
-                    setLocation(place.label);
-                    setLocationLat(place.lat);
-                    setLocationLng(place.lng);
-                    clear();
-                  }}
-                />
+                    {location ? (
+                      <span className="truncate">{location}</span>
+                    ) : (
+                      <span className="text-muted-foreground">
+                        Pick event location
+                      </span>
+                    )}
+                  </Button>
+                }
               </div>
 
               {/* Description */}
@@ -624,6 +606,20 @@ const CreateEvent = () => {
             </div>
           </div>
         ) : null}
+
+        {/* Location Map Modal */}
+        {showMapModal && (
+          <LocationMapModal
+            onSave={(lat, lng, address) => {
+              setLocationLat(lat);
+              setLocationLng(lng);
+              setLocation(address || location); // Use reverse-geocoded address if available
+              setShowMapModal(false);
+              toast.success("Location selected successfully");
+            }}
+            onClose={() => setShowMapModal(false)}
+          />
+        )}
       </div>
     </>
   );
