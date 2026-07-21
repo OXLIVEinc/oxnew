@@ -29,7 +29,7 @@ router.post(
         const [order] = await db
           .select()
           .from(ticketOrders)
-          .where(eq(ticketOrders.paystackReference, reference))
+          .where(eq(ticketOrders.reference, reference))
           .limit(1);
         if (order) {
           await finalizePaidOrder(order.id);
