@@ -338,12 +338,12 @@ const CreateEvent = () => {
     setIsSubmitting(true);
 
     try {
-      setSubmitStatus("Uploading banner...");
+      setSubmitStatus("Processing...");
       const backgroundImageUrl = await uploadFile(bannerFile, "event-banner");
 
       let venueMapPayload: CreateEventPayload["venueMap"] = null;
       if (venueMapFile) {
-        setSubmitStatus("Uploading venue map...");
+        // setSubmitStatus("Processing...");
         const imageUrl = await uploadFile(venueMapFile, "venue-map");
         venueMapPayload = { imageUrl };
       }
@@ -351,7 +351,7 @@ const CreateEvent = () => {
       for (let i = 0; i < galleryItems.length; i++) {
         const item = galleryItems[i];
         if (item.file) {
-          setSubmitStatus("Uploading gallery...");
+          // setSubmitStatus("Uploading gallery...");
           const mediaUrl = await uploadFile(item.file, `gallery-${i}`);
           gallery.push({ mediaUrl, mediaType: item.media_type });
         }
