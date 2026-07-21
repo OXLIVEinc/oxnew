@@ -79,7 +79,7 @@ export const DiscoverEventCard: React.FC<Props> = ({ event, onAuthRequired }) =>
           {/* Badges row - small screens only */}
           {(live || !event.isPaid) && (
             <div className="flex  items-center gap-1 mb-2">
-              {true && LiveBadge}
+              {live && LiveBadge}
               {!event.isPaid && FreeBadge}
             </div>
           )}
