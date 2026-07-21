@@ -53,7 +53,7 @@ export const VenueSeatingMapEditor: React.FC<VenueSeatingMapEditorProps> = ({
             <img 
               src={mapImagePreview} 
               alt="Venue seating map" 
-              className="w-full h-full object-contain" 
+               className="w-full h-full object-cover"
             />
           ) : (
             <div className="flex flex-col items-center gap-2">
