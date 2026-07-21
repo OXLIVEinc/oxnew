@@ -392,13 +392,10 @@ const CreateEvent = () => {
         status: result.event.status,
         approvalStatus: result.event.approvalStatus,
       });
-
       setShowSuccessModal(true);
-
       toast.success(
         draft ? "Event saved as draft!" : "Event created successfully!",
       );
-      navigate("/my-events");
     } catch (error) {
       if (import.meta.env.DEV) console.error("Error creating event:", error);
       toast.error(

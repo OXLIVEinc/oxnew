@@ -1,6 +1,7 @@
 import {
   Dialog,
   DialogContent,
+  DialogOverlay
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { BadgeCheck } from "lucide-react";
@@ -21,8 +22,9 @@ export function EventCreatedModal({
   onViewEvents,
 }: EventCreatedModalProps) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+    <Dialog  open={open} onOpenChange={onOpenChange}>
+        <DialogOverlay className="fixed inset-0 z-[99999999999999] bg-neutral-900/60 backdrop-blur-sm animate-[fadeIn_0.15s_ease-out]" />
+      <DialogContent className="z-[99999999999999] sm:max-w-lg rounded-3xl border-0 shadow-2xl animate-[slideUp_0.2s_ease-out]">
         <div className="flex flex-col items-center text-center py-4">
           <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center mb-5">
             <BadgeCheck className="h-9 w-9 text-green-600" />
@@ -76,3 +78,21 @@ export function EventCreatedModal({
     </Dialog>
   );
 }
+
+<style>{`
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+`}</style>
