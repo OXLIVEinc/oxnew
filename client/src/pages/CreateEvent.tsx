@@ -294,7 +294,7 @@ const CreateEvent = () => {
       );
       return;
     }
-
+    
     const validationResult = eventSchema.safeParse({
       eventName,
       startTime,
@@ -312,7 +312,7 @@ const CreateEvent = () => {
       toast.error(tierError);
       return;
     }
-
+    
     if (endDate && endTime) {
       const startDateTime = new Date(startDate);
       const [startH, startM] = startTime.split(":");
@@ -325,25 +325,47 @@ const CreateEvent = () => {
         return;
       }
     }
+    
+  try {
+  console.log("Starting banner upload");
 
-    try {
-      const backgroundImageUrl = await uploadFile(bannerFile, "event-banner");
+  const backgroundImageUrl = await uploadFile(bannerFile, "event-banner");
 
-      let venueMapPayload: CreateEventPayload["venueMap"] = null;
-      if (venueMapFile) {
-        const imageUrl = await uploadFile(venueMapFile, "venue-map");
-        venueMapPayload = { imageUrl };
-      }
+  console.log("Banner uploaded", backgroundImageUrl);
 
-      const gallery: { mediaUrl: string; mediaType: string }[] = [];
-      for (let i = 0; i < galleryItems.length; i++) {
-        const item = galleryItems[i];
-        if (item.file) {
-          const mediaUrl = await uploadFile(item.file, `gallery-${i}`);
-          gallery.push({ mediaUrl, mediaType: item.media_type });
-        }
-      }
+  let venueMapPayload: CreateEventPayload["venueMap"] = null;
 
+  if (venueMapFile) {
+    console.log("Uploading venue map");
+
+    const imageUrl = await uploadFile(venueMapFile, "venue-map");
+
+    console.log("Venue map uploaded");
+
+    venueMapPayload = { imageUrl };
+  }
+
+  const gallery = [];
+
+  for (let i = 0; i < galleryItems.length; i++) {
+    const item = galleryItems[i];
+
+    if (item.file) {
+      console.log(`Uploading gallery ${i}`);
+
+      const mediaUrl = await uploadFile(item.file, `gallery-${i}`);
+
+      console.log(`Gallery ${i} uploaded`);
+
+      gallery.push({
+        mediaUrl,
+        mediaType: item.media_type,
+      });
+    }
+  }
+
+  console.log("All uploads complete");
+      
       const payload: CreateEventPayload = {
         title: eventName,
         description,
@@ -372,19 +394,27 @@ const CreateEvent = () => {
         gallery: gallery.length > 0 ? gallery : undefined,
         venueMap: venueMapPayload,
       };
-
+      console.log(payload);
+      
+      console.log('jsj')
       await createEvent.mutateAsync(payload);
-
+      
       toast.success(
         draft ? "Event saved as draft!" : "Event created successfully!",
       );
       navigate("/my-events");
-    } catch (error) {
-      if (import.meta.env.DEV) console.error("Error creating event:", error);
-      toast.error(
-        getApiErrorMessage(error, "Failed to create event. Please try again."),
-      );
-    }
+    }  catch (error: any) {
+  console.error(error);
+
+  if (error.response) {
+    console.log("Status:", error.response.status);
+    console.log("Response:", error.response.data);
+  }
+
+  toast.error(
+    getApiErrorMessage(error, "Failed to create event.")
+  );
+}
   };
 
   const isSubmitting = createEvent.isPending;
@@ -565,7 +595,7 @@ const CreateEvent = () => {
               {/* Submit Buttons */}
               <div className="flex gap-3 mt-4 md:mt-8">
                 <div className="group flex items-center self-stretch relative overflow-hidden flex-1">
-                  <button
+                  {/* <button
                     onClick={() => handleSubmit(false)}
                     disabled={isSubmitting}
                     className="flex h-[50px] justify-center items-center gap-2.5 border relative px-2.5 py-3.5 border-solid transition-all duration-300 ease-in-out w-[calc(100%-50px)] z-10 bg-[#1A1A1A] border-[#1A1A1A] group-hover:w-full group-hover:bg-[#FA76FF] group-hover:border-[#FA76FF] disabled:opacity-50 disabled:cursor-not-allowed"
@@ -573,7 +603,12 @@ const CreateEvent = () => {
                     <span className="text-white text-[13px] font-normal uppercase relative transition-colors duration-300 group-hover:text-black">
                       {isSubmitting ? "CREATING..." : "PUBLISH EVENT"}
                     </span>
-                  </button>
+                  </button> */}
+                  <Button
+    onClick={() => handleSubmit(false)}
+>
+    Publish
+</Button>
                   <div className="flex w-[50px] h-[50px] justify-center items-center border absolute right-0 bg-white rounded-[99px] border-solid border-[#1A1A1A] transition-all duration-300 ease-in-out group-hover:opacity-0 group-hover:scale-50 pointer-events-none z-0">
                     <svg
                       width="12"

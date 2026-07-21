@@ -13,9 +13,11 @@ export default {
       },
     },
     extend: {
-      fontFamily: {
-        sans: ['Host Grotesk', 'sans-serif'],
-      },
+    fontFamily: {
+  sans: ['Host Grotesk', 'sans-serif'],
+  serif: ['Cormorant Garamond', 'serif'],
+  fraunces: ['Fraunces', 'serif'],
+},
        screens: {
       xs: "320px", // or 475px, 500px, etc.
     },

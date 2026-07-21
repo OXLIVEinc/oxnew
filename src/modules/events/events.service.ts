@@ -226,28 +226,11 @@ geocodedAddress: input.geocodedAddress ?? null,   // NEW
     }
 
     if (input.venueMap) {
-      const [map] = await tx
-        .insert(venueMaps)
-        .values({ eventId: event.id, imageUrl: input.venueMap.imageUrl })
-        .returning();
-
-      if (input.venueMap.sections.length) {
-        await tx.insert(venueSections).values(
-          input.venueMap.sections.map((section, i) => ({
-            eventId: event.id,
-            venueMapId: map.id,
-            name: section.name,
-            color: section.color,
-            capacity: section.capacity,
-            ticketTierId:
-              section.tierIndex !== null && section.tierIndex !== undefined
-                ? tiers[section.tierIndex]?.id ?? null
-                : null,
-            sortOrder: i,
-          }))
-        );
-      }
-    }
+  await tx.insert(venueMaps).values({
+    eventId: event.id,
+    imageUrl: input.venueMap.imageUrl,
+  });
+}
 
     return { event: serializeEvent(event, { likeCount: 0, registrationCount: 0 }), ticketTiers: tiers };
   });
