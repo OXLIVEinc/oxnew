@@ -104,7 +104,7 @@ function matchesDate(eventDate: Date, filters: DiscoverFilters): boolean {
   }
 }
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 12;
 
 const Discover = () => {
   const [filters, setFilters] = useState<DiscoverFilters>(DEFAULT_FILTERS);

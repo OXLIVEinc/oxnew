@@ -1,5 +1,5 @@
 import { Worker, Job } from "bullmq";
-import { createBullConnection } from "../db/redis";
+import { createBullConnection } from "../../../db/redis";
 import { handleHotelUpsell } from "../queues/hotel_upsell";
 import { handleReferralUpsell } from "../queues/referral_upsell";
 import { handlePreEventReminder } from "../queues/pre_event_reminder";

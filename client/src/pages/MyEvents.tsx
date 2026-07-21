@@ -157,9 +157,28 @@ const MyEvents = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-8">
-              {loading ? (
-                <div className="col-span-full text-center py-12">Loading events...</div>
-              ) : displayedEvents.length === 0 ? (
+             {loading ? (
+  Array.from({ length: 8 }).map((_, index) => (
+    <div key={index} className="animate-pulse">
+      {/* Image */}
+      <div className="relative overflow-hidden mb-3">
+        <div className="aspect-video bg-neutral-200" />
+
+        {/* Date badge */}
+        <div className="absolute top-4 left-4">
+          <div className="h-6 w-28 bg-white border border-neutral-300" />
+          <div className="h-6 w-20 bg-white border border-t-0 border-neutral-300" />
+        </div>
+      </div>
+
+      {/* Title */}
+      <div className="space-y-2">
+        <div className="h-5 w-3/4 rounded bg-neutral-200" />
+        <div className="h-4 w-1/2 rounded bg-neutral-100" />
+      </div>
+    </div>
+  ))
+) : displayedEvents.length === 0 ? (
                 <div className="col-span-full text-center py-12">
                   {activeTab === 'created'
                     ? "You haven't created any events yet"

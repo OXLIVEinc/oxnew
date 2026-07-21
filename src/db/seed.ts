@@ -1,9 +1,9 @@
 import "dotenv/config";
 import { db } from "./client";
-import * as schema from "../../../../shared/schema";
+import * as schema from "../../shared/schema";
 import { eq } from "drizzle-orm";
-import { generateEventCode } from "../lib/ids";
-import { formatClockTime } from "../lib/datetime";
+import { generateEventCode } from "../modules/whatsapp/lib/ids";
+import { formatClockTime } from "../modules/whatsapp/lib/datetime";
 
 
 /** Days from now, at a given 24hr hour/minute, in UTC. */
@@ -14,14 +14,6 @@ function inDays(days: number, hour: number, minute = 0): Date {
   return d;
 }
 
-/** slug-ify a brand name into a stable, deterministic organizer email. */
-function organizerEmail(brandName: string): string {
-  const slug = brandName
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-  return `${slug}@organizers.ox.app`;
-}
 
 
 interface EventSeedInput {

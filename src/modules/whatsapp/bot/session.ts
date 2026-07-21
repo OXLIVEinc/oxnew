@@ -1,4 +1,4 @@
-import { redis } from '../db/redis';
+import { redis } from '../../../db/redis';
 import { Session, ConversationState, ConversationContext } from '../types';
 import { BotReply } from '../types';
 

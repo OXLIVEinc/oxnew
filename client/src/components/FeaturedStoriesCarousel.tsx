@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react';
 import { useFeaturedEvents } from '@/hooks/api/useDiscover';
 import { formatEventSchedule } from '@/lib/eventSchedule';
-import type { DiscoverEvent } from '@/lib/api/types';
+import { Skeleton } from "@/components/ui/skeleton";
 
 const STORY_DURATION = 5000;
 
@@ -16,8 +16,59 @@ const STORY_DURATION = 5000;
  * chose to spotlight.
  * -------------------------------------------------------------------------
  */
+
+
+
+const FeaturedStoriesCarouselSkeleton = () => (
+  <div className="w-full py-8 md:py-12 bg-background">
+    {/* Header */}
+    <div className="flex items-center justify-between px-4 md:px-8 mb-4 md:mb-6">
+      <Skeleton className="h-7 w-44" />
+      <Skeleton className="h-4 w-16" />
+    </div>
+
+    {/* Full-width banner */}
+    <div className="px-4 md:px-8">
+      <div className="relative w-full h-[260px] sm:h-[360px] md:h-[520px] rounded-xl overflow-hidden">
+        <Skeleton className="w-full h-full rounded-xl" />
+
+        {/* Progress bars */}
+        <div className="absolute top-3 left-3 right-3 flex gap-1">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-[2px] flex-1" />
+          ))}
+        </div>
+
+        {/* Bottom content */}
+        <div className="absolute bottom-6 left-6 right-6 space-y-3">
+          <Skeleton className="h-8 w-2/3 max-w-md" />
+          <Skeleton className="h-4 w-1/2 max-w-xs" />
+
+          <div className="flex gap-2">
+            <Skeleton className="h-5 w-20" />
+            <Skeleton className="h-5 w-16" />
+          </div>
+
+          <Skeleton className="h-10 w-32" />
+        </div>
+      </div>
+    </div>
+
+    {/* Thumbnails */}
+    <div className="flex gap-4 px-4 md:px-8 mt-4 overflow-hidden">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="flex flex-col items-center gap-2 shrink-0">
+          <Skeleton className="w-14 h-14 md:w-16 md:h-16 rounded-full" />
+          <Skeleton className="h-2 w-10" />
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+
 export const FeaturedStoriesCarousel: React.FC = () => {
-  const { data: events = [] } = useFeaturedEvents();
+  const { data: events = [], isLoading } = useFeaturedEvents();
   const [activeIndex, setActiveIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -134,7 +185,12 @@ export const FeaturedStoriesCarousel: React.FC = () => {
     }
   };
 
-  if (events.length === 0) return null;
+  if (isLoading) {
+  return <FeaturedStoriesCarouselSkeleton />;
+}
+
+if (events.length === 0) return null;
+
   const current = events[activeIndex];
 
   return (

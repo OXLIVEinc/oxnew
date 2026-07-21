@@ -1,4 +1,4 @@
-import { createBullConnection } from "../db/redis";
+import { createBullConnection } from "../../../db/redis";
 
 /**
  * One shared BullMQ connection for all queues (producers). Workers get

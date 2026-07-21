@@ -1,5 +1,5 @@
 import { and, asc, desc, eq, gt, ilike, or, sql, inArray } from "drizzle-orm";
-import { db } from "../db/client";
+import { db } from "../../../db/client";
 import * as schema from "../../../../shared/schema";
 import { OrderItem } from "../../../../shared/schema";
 import { initializeTransaction } from "../lib/paystack";

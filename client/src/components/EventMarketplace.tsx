@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useDiscoverFeed } from '@/hooks/api/useDiscover';
 import { formatEventSchedule } from '@/lib/eventSchedule';
 import type { DiscoverEvent } from '@/lib/api/types';
+import { Skeleton } from "@/components/ui/skeleton";
 
 /**
  * src/components/EventMarketplace.tsx
@@ -55,6 +56,33 @@ const ScrollRow: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   );
 };
 
+
+const EventMarketplaceSkeleton = () => (
+  <section className="py-12 md:py-20 space-y-12 md:space-y-16">
+    {[1, 2].map((section) => (
+      <div key={section}>
+        <div className="px-4 md:px-8 mb-4">
+          <Skeleton className="h-3 w-44 mb-2" />
+          <Skeleton className="h-7 w-56" />
+        </div>
+
+        <div className="flex gap-4 overflow-hidden px-4 md:px-8 pb-4">
+          {[1, 2, 3].map((card) => (
+            <div
+              key={card}
+              className="flex-shrink-0 w-[82vw] sm:w-[60vw] md:w-[420px]"
+            >
+              <Skeleton className="aspect-video rounded-2xl" />
+              <Skeleton className="h-4 w-3/4 mt-3 rounded-md" />
+              <Skeleton className="h-3 w-1/2 mt-2 rounded-md" />
+            </div>
+          ))}
+        </div>
+      </div>
+    ))}
+  </section>
+);
+
 const PrimaryCard: React.FC<{ event: DiscoverEvent; onClick: () => void; isFirst?: boolean }> = ({ event, onClick }) => {
   const schedule = formatEventSchedule(event.schedule);
   return (
@@ -87,7 +115,11 @@ export const EventMarketplace: React.FC = () => {
   const navigate = useNavigate();
   const { data: feed, isLoading } = useDiscoverFeed();
 
-  if (isLoading || !feed) return null;
+  if (isLoading) {
+  return <EventMarketplaceSkeleton />;
+}
+
+if (!feed) return null;
 
   const rows: CategoryRow[] = [];
   if (feed.trending.length > 0) {
