@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import LocationMapModal from "@/components/LocationMapModal"; // ← Create this file
+import LocationMapModal from "@/components/LocationMapModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -227,6 +227,7 @@ const CreateEvent = () => {
   const [locationLng, setLocationLng] = useState<number | null>(null);
   const [description, setDescription] = useState("");
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [geocodedAddress, setGeocodedAddress] = useState<string | null>(null);
 
   const [isPaid, setIsPaid] = useState(false);
   const [ticketTiers, setTicketTiers] = useState<TicketTierFormValue[]>([
@@ -352,6 +353,7 @@ const CreateEvent = () => {
         endTime: endTime || null,
         venue: location,
         address: location,
+        geocodedAddress,
         locationLat,
         locationLng,
         backgroundImageUrl,
@@ -487,7 +489,6 @@ const CreateEvent = () => {
                 </div>
               </div>
 
-
               {/* Location Section */}
               <div className="relative">
                 {
@@ -610,10 +611,11 @@ const CreateEvent = () => {
         {/* Location Map Modal */}
         {showMapModal && (
           <LocationMapModal
-            onSave={(lat, lng, address) => {
-              setLocationLat(lat);
-              setLocationLng(lng);
-              setLocation(address || location); 
+            onSave={(loc) => {
+              setLocationLat(loc.latitude);
+              setLocationLng(loc.longitude);
+              setLocation(loc.displayAddress || loc.geocodedAddress);
+              setGeocodedAddress(loc.geocodedAddress || null);
               setShowMapModal(false);
               toast.success("Location selected successfully");
             }}

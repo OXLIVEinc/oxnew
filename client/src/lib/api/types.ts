@@ -37,6 +37,7 @@ export interface EventSummary {
   schedule: EventSchedule;
   venue: string;
   address: string;
+  geocodedAddress: string | null;
   locationLat: string;
   locationLng: string;
   backgroundImageUrl: string;
@@ -135,6 +136,7 @@ export interface CreateEventPayload {
   endTime?: string | null;
   venue: string;
   address: string;
+  geocodedAddress: string | null; 
   locationLat: number;
   locationLng: number;
   backgroundImageUrl: string;

@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import {
   LayoutDashboard, CalendarDays, Users, Ticket, CreditCard,
   Crown, BarChart3, LogOut, Mail,

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { SEOHead } from '@/components/SEOHead';
 import { useAdminAuth } from '@/components/admin/useAdminAuth';
-import { AdminLayout, AdminTab } from '@/components/admin/AdminLayout';
+import { AdminLayout, type AdminTab } from '@/components/admin/AdminLayout';
 import { AdminOverview } from '@/components/admin/AdminOverview';
 import { AdminEventsPanel } from '@/components/admin/AdminEventsPanel';
 import { AdminOrganizersPanel } from '@/components/admin/AdminOrganizersPanel';

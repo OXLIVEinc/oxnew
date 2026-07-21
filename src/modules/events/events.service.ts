@@ -33,11 +33,12 @@ import { isTierSoldOut } from "./events.repository";
 export interface CreateEventInput {
   title: string;
   description?: string;
-  startsAt: string; // ISO date, required
-  startTime: string; // "HH:MM", required
+  startsAt: string;
+  startTime: string;
   endsAt?: string | null;
   endTime?: string | null;
   address: string;
+  geocodedAddress?: string | null;   // NEW
   locationLat: number;
   locationLng: number;
   backgroundImageUrl: string;
@@ -67,6 +68,7 @@ function serializeEvent(
     description: event.description,
     schedule: toEventSchedule(event),
     address: event.address,
+    geocodedAddress: event.geocodedAddress,   // NEW
     locationLat: event.locationLat,
     locationLng: event.locationLng,
     backgroundImageUrl: event.backgroundImageUrl,
@@ -192,6 +194,7 @@ export async function createEvent(organizerProfileId: string, input: CreateEvent
         endsAt: input.endsAt ? new Date(input.endsAt) : null,
         endTime: input.endTime ?? null,
         address: input.address,
+geocodedAddress: input.geocodedAddress ?? null,   // NEW
         locationLat: String(input.locationLat),
         locationLng: String(input.locationLng),
         backgroundImageUrl: input.backgroundImageUrl,
@@ -205,6 +208,7 @@ export async function createEvent(organizerProfileId: string, input: CreateEvent
         status: input.status ?? "active",
         eventCode: generateEventCode(input.title),
         createdBy: organizerProfileId,
+        
       })
       .returning();
 
@@ -264,6 +268,7 @@ export async function updateEvent(eventId: string, organizerProfileId: string, p
       ...(patch.endsAt !== undefined && { endsAt: patch.endsAt ? new Date(patch.endsAt) : null }),
       ...(patch.endTime !== undefined && { endTime: patch.endTime }),
       ...(patch.address !== undefined && { address: patch.address }),
+...(patch.geocodedAddress !== undefined && { geocodedAddress: patch.geocodedAddress }), // NEW
       ...(patch.locationLat !== undefined && { locationLat: String(patch.locationLat) }),
       ...(patch.locationLng !== undefined && { locationLng: String(patch.locationLng) }),
       ...(patch.backgroundImageUrl !== undefined && { backgroundImageUrl: patch.backgroundImageUrl }),

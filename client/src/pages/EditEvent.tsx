@@ -1,47 +1,65 @@
-import { useState, useRef, useEffect } from 'react';
-import { Navbar } from '@/components/Navbar';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
-import { supabase } from '@/integrations/supabase/client';
-import { useNavigate, useParams } from 'react-router-dom';
-import { toast } from 'sonner';
-import { type User } from '@supabase/supabase-js';
-import { AuthSheet } from '@/components/AuthSheet';
-import { SEOHead } from '@/components/SEOHead';
-import { Trash2 } from 'lucide-react';
-import { z } from 'zod';
+import { useState, useEffect } from "react";
+import { Navbar } from "@/components/Navbar";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate, useParams } from "react-router-dom";
+import { toast } from "sonner";
+import { type User } from "@supabase/supabase-js";
+import { AuthSheet } from "@/components/AuthSheet";
+import { SEOHead } from "@/components/SEOHead";
+import { Trash2 } from "lucide-react";
+import { z } from "zod";
 import {
   EventTicketTiers,
   createDefaultTicketTier,
   validateTicketTiers,
   type TicketTierFormValue,
-} from '@/components/EventTicketTiers';
-import { EventMetadataForm } from '@/components/EventMetadataForm';
-import { EventBannerUpload } from '@/components/EventBannerUpload';
-import { EventGalleryUpload, type GalleryItem } from '@/components/EventGalleryUpload';
-import { VenueSeatingMapEditor } from '@/components/VenueSeatingMapEditor';
-import { useEvent, useUpdateEvent } from '@/hooks/api/useEvents';
-import { useAddTicketTier, useUpdateTicketTier, useDeleteTicketTier } from '@/hooks/api/useTicketTiers';
-import { getApiErrorMessage } from '@/lib/api/http';
-import { usePhotonAutocomplete } from '@/hooks/useLocationAutocomplete';
-import { type LocationSuggestion, LocationSuggestions } from '@/components/LocationSuggestion';
-import { Button } from '@/components/ui/button';
+} from "@/components/EventTicketTiers";
+import { EventMetadataForm } from "@/components/EventMetadataForm";
+import { EventBannerUpload } from "@/components/EventBannerUpload";
+import {
+  EventGalleryUpload,
+  type GalleryItem,
+} from "@/components/EventGalleryUpload";
+import { VenueSeatingMapEditor } from "@/components/VenueSeatingMapEditor";
+import { useEvent, useUpdateEvent } from "@/hooks/api/useEvents";
+import {
+  useAddTicketTier,
+  useUpdateTicketTier,
+  useDeleteTicketTier,
+} from "@/hooks/api/useTicketTiers";
+import { getApiErrorMessage } from "@/lib/api/http";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
+import LocationMapModal from "@/components/LocationMapModal";
+import { MapPin } from "lucide-react";
 
 const eventSchema = z.object({
-  eventName: z.string().trim().min(1, 'Event name is required').max(200),
-  startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Start time must be HH:MM'),
-  endTime: z.union([z.literal(''), z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'End time must be HH:MM')]),
-  location: z.string().trim().min(1, 'Location is required').max(300),
-  description: z.string().trim().min(1, 'Description is required').max(2000),
+  eventName: z.string().trim().min(1, "Event name is required").max(200),
+  startTime: z
+    .string()
+    .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Start time must be HH:MM"),
+  endTime: z.union([
+    z.literal(""),
+    z
+      .string()
+      .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "End time must be HH:MM"),
+  ]),
+  location: z.string().trim().min(1, "Location is required").max(300),
+  description: z.string().trim().min(1, "Description is required").max(2000),
 });
 
 // Helper functions for time conversion
@@ -205,25 +223,25 @@ const TimePicker = ({
 
 const EditEvent = () => {
   const { id } = useParams();
-  const [eventName, setEventName] = useState('');
+  const [eventName, setEventName] = useState("");
   const [startDate, setStartDate] = useState<Date | undefined>();
-  const [startTime, setStartTime] = useState('');
+  const [startTime, setStartTime] = useState("");
   const [endDate, setEndDate] = useState<Date | undefined>();
-  const [endTime, setEndTime] = useState('');
-  const [location, setLocation] = useState('');
+  const [endTime, setEndTime] = useState("");
+  const [location, setLocation] = useState("");
   const [locationLat, setLocationLat] = useState<number | null>(null);
   const [locationLng, setLocationLng] = useState<number | null>(null);
-  const [description, setDescription] = useState('');
+  const [description, setDescription] = useState("");
   const [user, setUser] = useState<User | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [hydrated, setHydrated] = useState(false);
-  const [currentStatus, setCurrentStatus] = useState('active');
+  const [currentStatus, setCurrentStatus] = useState("active");
 
   const [isPaid, setIsPaid] = useState(false);
   const [ticketTiers, setTicketTiers] = useState<TicketTierFormValue[]>([]);
-  const [ageGroup, setAgeGroup] = useState('');
-  const [genre, setGenre] = useState('');
+  const [ageGroup, setAgeGroup] = useState("");
+  const [genre, setGenre] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
   const [bannerFile, setBannerFile] = useState<File | null>(null);
@@ -231,29 +249,29 @@ const EditEvent = () => {
   const [venueMapPreview, setVenueMapPreview] = useState<string | null>(null);
   const [venueMapFile, setVenueMapFile] = useState<File | null>(null);
 
-  const locationInputRef = useRef<HTMLInputElement>(null);
+  const [geocodedAddress, setGeocodedAddress] = useState<string | null>(null);
+  const [showMapModal, setShowMapModal] = useState(false);
+
   const navigate = useNavigate();
 
   const {
-    suggestions,
-    loading: isLoading,
-    error,
-    search,
-    clear,
-  } = usePhotonAutocomplete();
-
-  const { data: event, isLoading: isLoadingEvent, error: eventError } = useEvent(id);
-  const updateEvent = useUpdateEvent(id ?? '');
-  const addTicketTier = useAddTicketTier(id ?? '');
-  const updateTicketTier = useUpdateTicketTier(id ?? '');
-  const deleteTicketTier = useDeleteTicketTier(id ?? '');
+    data: event,
+    isLoading: isLoadingEvent,
+    error: eventError,
+  } = useEvent(id);
+  const updateEvent = useUpdateEvent(id ?? "");
+  const addTicketTier = useAddTicketTier(id ?? "");
+  const updateTicketTier = useUpdateTicketTier(id ?? "");
+  const deleteTicketTier = useDeleteTicketTier(id ?? "");
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user || null);
       if (!session?.user) setShowAuthModal(true);
     });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null);
       if (session?.user) setShowAuthModal(false);
       else setShowAuthModal(true);
@@ -263,8 +281,8 @@ const EditEvent = () => {
 
   useEffect(() => {
     if (eventError) {
-      toast.error(getApiErrorMessage(eventError, 'Failed to load event'));
-      navigate('/my-events');
+      toast.error(getApiErrorMessage(eventError, "Failed to load event"));
+      navigate("/my-events");
     }
   }, [eventError, navigate]);
 
@@ -272,46 +290,47 @@ const EditEvent = () => {
   useEffect(() => {
     if (!event || !user || hydrated) return;
     if (event.createdBy !== user.id) {
-      toast.error('No permission');
-      navigate('/my-events');
+      toast.error("No permission");
+      navigate("/my-events");
       return;
     }
 
     setEventName(event.title);
-    setDescription(event.description ?? '');
+    setDescription(event.description ?? "");
     setLocation(event.address);
+    setGeocodedAddress((event as any).geocodedAddress ?? null);
     setLocationLat(Number(event.locationLat));
     setLocationLng(Number(event.locationLng));
     setIsPaid(event.isPaid);
-    setAgeGroup(event.ageGroup ?? '');
-    setGenre(event.genre ?? '');
+    setAgeGroup(event.ageGroup ?? "");
+    setGenre(event.genre ?? "");
     setTags(event.tags ?? []);
     setCurrentStatus(event.status);
     setBannerPreview(event.desktopBannerUrl || event.backgroundImageUrl);
     setStartDate(new Date(event.schedule.date));
     setStartTime(event.schedule.time);
     if (event.schedule.endDate) setEndDate(new Date(event.schedule.endDate));
-    setEndTime(event.schedule.endTime ?? '');
+    setEndTime(event.schedule.endTime ?? "");
 
     setTicketTiers(
       event.ticketTiers.length > 0
         ? event.ticketTiers.map((t) => ({
             id: t.id,
             name: t.name,
-            description: t.description || '',
+            description: t.description || "",
             price: Number(t.price),
             isUnlimited: t.isUnlimited,
             quantity: t.quantity ?? 0,
           }))
-        : [createDefaultTicketTier()]
+        : [createDefaultTicketTier()],
     );
 
     setGalleryItems(
       event.gallery.map((g) => ({
         preview: g.mediaUrl,
         media_url: g.mediaUrl,
-        media_type: g.mediaType as 'image' | 'video',
-      }))
+        media_type: g.mediaType as "image" | "video",
+      })),
     );
 
     // Check if venue map exists on the event (using type assertion since the type might not have it)
@@ -324,18 +343,24 @@ const EditEvent = () => {
   }, [event, user, hydrated, navigate]);
 
   const uploadFile = async (file: File, prefix: string): Promise<string> => {
-    if (!user) throw new Error('User not authenticated');
-    const fileExt = file.name.split('.').pop();
+    if (!user) throw new Error("User not authenticated");
+    const fileExt = file.name.split(".").pop();
     const fileName = `${user.id}/${prefix}-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-    const { error } = await supabase.storage.from('event-images').upload(fileName, file);
+    const { error } = await supabase.storage
+      .from("event-images")
+      .upload(fileName, file);
     if (error) throw error;
-    const { data: { publicUrl } } = supabase.storage.from('event-images').getPublicUrl(fileName);
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from("event-images").getPublicUrl(fileName);
     return publicUrl;
   };
 
   const syncTicketTiers = async () => {
     const originalIds = new Set((event?.ticketTiers ?? []).map((t) => t.id));
-    const keptIds = new Set(ticketTiers.filter((t) => t.id).map((t) => t.id as string));
+    const keptIds = new Set(
+      ticketTiers.filter((t) => t.id).map((t) => t.id as string),
+    );
 
     const toDelete = [...originalIds].filter((tid) => !keptIds.has(tid));
     for (const tierId of toDelete) {
@@ -359,41 +384,62 @@ const EditEvent = () => {
   };
 
   const handleSubmit = async (draft = false) => {
-    if (!user || !id) { setShowAuthModal(true); return; }
-    if (!startDate) { toast.error('Please select a start date'); return; }
-    if (endDate && !endTime) { toast.error('Please add an end time, or clear the end date'); return; }
-    if (!endDate && endTime) { toast.error('Please add an end date, or clear the end time'); return; }
+    if (!user || !id) {
+      setShowAuthModal(true);
+      return;
+    }
+    if (!startDate) {
+      toast.error("Please select a start date");
+      return;
+    }
+    if (endDate && !endTime) {
+      toast.error("Please add an end time, or clear the end date");
+      return;
+    }
+    if (!endDate && endTime) {
+      toast.error("Please add an end date, or clear the end time");
+      return;
+    }
     if (locationLat === null || locationLng === null) {
-      toast.error('Please re-select the location from the suggestions');
+      toast.error("Please re-select the location from the suggestions");
       return;
     }
 
     const validationResult = eventSchema.safeParse({
       eventName,
       startTime,
-      endTime: endTime || '',
+      endTime: endTime || "",
       location,
       description,
     });
-    if (!validationResult.success) { toast.error(validationResult.error.issues[0].message); return; }
+    if (!validationResult.success) {
+      toast.error(validationResult.error.issues[0].message);
+      return;
+    }
 
     const tierError = validateTicketTiers(ticketTiers, isPaid);
-    if (tierError) { toast.error(tierError); return; }
+    if (tierError) {
+      toast.error(tierError);
+      return;
+    }
 
     if (endDate && endTime) {
       const startDateTime = new Date(startDate);
-      const [startH, startM] = startTime.split(':');
+      const [startH, startM] = startTime.split(":");
       startDateTime.setHours(parseInt(startH, 10), parseInt(startM, 10), 0, 0);
       const endDateTime = new Date(endDate);
-      const [endH, endM] = endTime.split(':');
+      const [endH, endM] = endTime.split(":");
       endDateTime.setHours(parseInt(endH, 10), parseInt(endM, 10), 0, 0);
-      if (endDateTime <= startDateTime) { toast.error('End date/time must be after start'); return; }
+      if (endDateTime <= startDateTime) {
+        toast.error("End date/time must be after start");
+        return;
+      }
     }
 
     setIsSubmitting(true);
     try {
       let bannerUrl = bannerPreview;
-      if (bannerFile) bannerUrl = await uploadFile(bannerFile, 'event-banner');
+      if (bannerFile) bannerUrl = await uploadFile(bannerFile, "event-banner");
 
       await updateEvent.mutateAsync({
         title: eventName,
@@ -404,6 +450,7 @@ const EditEvent = () => {
         endTime: endTime || null,
         venue: location,
         address: location,
+        geocodedAddress,
         locationLat,
         locationLng,
         backgroundImageUrl: bannerUrl || undefined,
@@ -412,24 +459,24 @@ const EditEvent = () => {
         ageGroup: ageGroup || null,
         genre: genre || null,
         tags: tags.length > 0 ? tags : undefined,
-        status: draft ? 'draft' : (currentStatus as 'active' | 'draft'),
+        status: draft ? "draft" : (currentStatus as "active" | "draft"),
       });
 
       await syncTicketTiers();
 
       // Handle venue map update
       if (venueMapFile) {
-        const mapUrl = await uploadFile(venueMapFile, 'venue-map');
+        const mapUrl = await uploadFile(venueMapFile, "venue-map");
         // Check if venue map exists using the event data
         const eventWithVenueMap = event as any;
         if (eventWithVenueMap.venueMap?.id) {
           await supabase
-            .from('venue_maps')
+            .from("venue_maps")
             .update({ image_url: mapUrl })
-            .eq('id', eventWithVenueMap.venueMap.id);
+            .eq("id", eventWithVenueMap.venueMap.id);
         } else {
           await supabase
-            .from('venue_maps')
+            .from("venue_maps")
             .insert({ event_id: id, image_url: mapUrl });
         }
       }
@@ -439,7 +486,7 @@ const EditEvent = () => {
         const item = galleryItems[i];
         if (item.file) {
           const mediaUrl = await uploadFile(item.file, `gallery-${i}`);
-          await supabase.from('event_gallery').insert({
+          await supabase.from("event_gallery").insert({
             event_id: id,
             media_url: mediaUrl,
             media_type: item.media_type,
@@ -448,11 +495,13 @@ const EditEvent = () => {
         }
       }
 
-      toast.success('Event updated successfully!');
-      navigate('/my-events');
+      toast.success("Event updated successfully!");
+      navigate("/my-events");
     } catch (error) {
-      if (import.meta.env.DEV) console.error('Error updating event:', error);
-      toast.error(getApiErrorMessage(error, 'Failed to update event. Please try again.'));
+      if (import.meta.env.DEV) console.error("Error updating event:", error);
+      toast.error(
+        getApiErrorMessage(error, "Failed to update event. Please try again."),
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -460,15 +509,20 @@ const EditEvent = () => {
 
   const handleDeleteEvent = async () => {
     if (!id) return;
-    if (!window.confirm('Are you sure you want to delete this event? This action cannot be undone.')) return;
+    if (
+      !window.confirm(
+        "Are you sure you want to delete this event? This action cannot be undone.",
+      )
+    )
+      return;
     try {
-      const { error } = await supabase.from('events').delete().eq('id', id);
+      const { error } = await supabase.from("events").delete().eq("id", id);
       if (error) throw error;
-      toast.success('Event deleted successfully');
-      navigate('/my-events');
+      toast.success("Event deleted successfully");
+      navigate("/my-events");
     } catch (error) {
-      if (import.meta.env.DEV) console.error('Error deleting event:', error);
-      toast.error('Failed to delete event');
+      if (import.meta.env.DEV) console.error("Error deleting event:", error);
+      toast.error("Failed to delete event");
     }
   };
 
@@ -485,12 +539,18 @@ const EditEvent = () => {
 
   return (
     <>
-      <SEOHead title="Edit Event" description="Update your event details and settings" />
-      <AuthSheet isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
-      
+      <SEOHead
+        title="Edit Event"
+        description="Update your event details and settings"
+      />
+      <AuthSheet
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+      />
+
       <div className="min-h-screen bg-white">
         <Navbar />
-        
+
         {user ? (
           <div className="max-w-4xl mx-auto pt-24 md:pt-32 pb-8 md:pb-16 px-4 md:px-8">
             <div className="space-y-6 md:space-y-8">
@@ -507,16 +567,31 @@ const EditEvent = () => {
                 <div className="grid grid-cols-[80px_1fr_80px] md:grid-cols-[100px_1fr_100px] gap-0 border border-black mb-4 md:mb-6">
                   <div className="flex items-center justify-start gap-1.5 md:gap-2 border-r border-black px-2 md:px-3 py-2 md:py-3">
                     <div className="w-1.5 md:w-2 h-1.5 md:h-2 bg-black rounded-full"></div>
-                    <span className="text-[14px] md:text-[17px] font-medium">Start</span>
+                    <span className="text-[14px] md:text-[17px] font-medium">
+                      Start
+                    </span>
                   </div>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <button className={cn("px-2 md:px-4 py-2 md:py-3 text-[14px] md:text-[17px] text-left border-r border-black focus:outline-none bg-white", !startDate && "text-[#C4C4C4]")}>
-                        {startDate ? format(startDate, "EEE, dd MMM") : "Select date"}
+                      <button
+                        className={cn(
+                          "px-2 md:px-4 py-2 md:py-3 text-[14px] md:text-[17px] text-left border-r border-black focus:outline-none bg-white",
+                          !startDate && "text-[#C4C4C4]",
+                        )}
+                      >
+                        {startDate
+                          ? format(startDate, "EEE, dd MMM")
+                          : "Select date"}
                       </button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus className={cn("p-3 pointer-events-auto")} />
+                      <Calendar
+                        mode="single"
+                        selected={startDate}
+                        onSelect={setStartDate}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
                     </PopoverContent>
                   </Popover>
                   <TimePicker
@@ -528,16 +603,29 @@ const EditEvent = () => {
                 <div className="grid grid-cols-[80px_1fr_80px] md:grid-cols-[100px_1fr_100px] gap-0 border border-black">
                   <div className="flex items-center justify-start gap-1.5 md:gap-2 border-r border-black px-2 md:px-3 py-2 md:py-3">
                     <div className="w-1.5 md:w-2 h-1.5 md:h-2 bg-black rounded-full"></div>
-                    <span className="text-[14px] md:text-[17px] font-medium">End (optional)</span>
+                    <span className="text-[14px] md:text-[17px] font-medium">
+                      End (optional)
+                    </span>
                   </div>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <button className={cn("px-2 md:px-4 py-2 md:py-3 text-[14px] md:text-[17px] text-left border-r border-black focus:outline-none bg-white", !endDate && "text-[#C4C4C4]")}>
+                      <button
+                        className={cn(
+                          "px-2 md:px-4 py-2 md:py-3 text-[14px] md:text-[17px] text-left border-r border-black focus:outline-none bg-white",
+                          !endDate && "text-[#C4C4C4]",
+                        )}
+                      >
                         {endDate ? format(endDate, "EEE, dd MMM") : "None"}
                       </button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar mode="single" selected={endDate} onSelect={setEndDate} initialFocus className={cn("p-3 pointer-events-auto")} />
+                      <Calendar
+                        mode="single"
+                        selected={endDate}
+                        onSelect={setEndDate}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
                     </PopoverContent>
                   </Popover>
                   <TimePicker
@@ -550,51 +638,67 @@ const EditEvent = () => {
 
               {/* Location */}
               <div className="relative">
-                <input 
-                  ref={locationInputRef} 
-                  type="text" 
-                  placeholder="Add event location" 
-                  className="w-full px-3 md:px-4 py-2 md:py-3 text-[14px] md:text-[17px] text-black border border-black focus:outline-none placeholder:text-[#C4C4C4]" 
-                  value={location} 
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setLocation(value);
-                    setLocationLat(null);
-                    setLocationLng(null);
-                    search(value);
-                  }}
-                />
+                {
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full border rounded-none border-black justify-start h-12"
+                    onClick={() => setShowMapModal(true)}
+                  >
+                    <MapPin className="mr-2 h-4 w-4" />
 
-                <LocationSuggestions
-                  suggestions={suggestions}
-                  loading={isLoading}
-                  error={error}
-                  onSelect={(place: LocationSuggestion) => {
-                    setLocation(place.label);
-                    setLocationLat(place.lat);
-                    setLocationLng(place.lng);
-                    clear();
-                  }}
-                />
+                    {location ? (
+                      <span className="truncate">{location}</span>
+                    ) : (
+                      <span className="text-muted-foreground">
+                        Pick event location
+                      </span>
+                    )}
+                  </Button>
+                }
               </div>
 
               {/* Description */}
-              <textarea placeholder="Add description" rows={6} className="w-full px-3 md:px-4 py-2 md:py-3 text-[14px] md:text-[17px] text-black border border-black focus:outline-none resize-none placeholder:text-[#C4C4C4]" value={description} onChange={(e) => setDescription(e.target.value)} />
+              <textarea
+                placeholder="Add description"
+                rows={6}
+                className="w-full px-3 md:px-4 py-2 md:py-3 text-[14px] md:text-[17px] text-black border border-black focus:outline-none resize-none placeholder:text-[#C4C4C4]"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
 
               {/* Event Metadata */}
-              <EventMetadataForm ageGroup={ageGroup} genre={genre} tags={tags} onAgeGroupChange={setAgeGroup} onGenreChange={setGenre} onTagsChange={setTags} />
+              <EventMetadataForm
+                ageGroup={ageGroup}
+                genre={genre}
+                tags={tags}
+                onAgeGroupChange={setAgeGroup}
+                onGenreChange={setGenre}
+                onTagsChange={setTags}
+              />
 
               {/* Ticket Tiers */}
-              <EventTicketTiers tiers={ticketTiers} onChange={setTicketTiers} isPaid={isPaid} onPaidChange={setIsPaid} />
+              <EventTicketTiers
+                tiers={ticketTiers}
+                onChange={setTicketTiers}
+                isPaid={isPaid}
+                onPaidChange={setIsPaid}
+              />
 
               {/* Banner */}
               <EventBannerUpload
                 bannerPreview={bannerPreview}
-                onBannerChange={(file, preview) => { setBannerFile(file); setBannerPreview(preview); }}
+                onBannerChange={(file, preview) => {
+                  setBannerFile(file);
+                  setBannerPreview(preview);
+                }}
               />
 
               {/* Gallery */}
-              <EventGalleryUpload items={galleryItems} onChange={setGalleryItems} />
+              <EventGalleryUpload
+                items={galleryItems}
+                onChange={setGalleryItems}
+              />
 
               {/* Venue Seating Map */}
               <VenueSeatingMapEditor
@@ -614,13 +718,28 @@ const EditEvent = () => {
                     className="flex h-[50px] justify-center items-center gap-2.5 border relative px-2.5 py-3.5 border-solid transition-all duration-300 ease-in-out w-[calc(100%-50px)] z-10 bg-[#1A1A1A] border-[#1A1A1A] group-hover:w-full group-hover:bg-[#FA76FF] group-hover:border-[#FA76FF] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <span className="text-white text-[13px] font-normal uppercase relative transition-colors duration-300 group-hover:text-black">
-                      {isSubmitting ? 'UPDATING...' : 'UPDATE EVENT'}
+                      {isSubmitting ? "UPDATING..." : "UPDATE EVENT"}
                     </span>
                   </button>
                   <div className="flex w-[50px] h-[50px] justify-center items-center border absolute right-0 bg-white rounded-[99px] border-solid border-[#1A1A1A] transition-all duration-300 ease-in-out group-hover:opacity-0 group-hover:scale-50 pointer-events-none z-0">
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                      <path d="M0.857178 6H10.3929" stroke="#1A1A1A" strokeWidth="1.5" />
-                      <path d="M6.39282 10L10.3928 6L6.39282 2" stroke="#1A1A1A" strokeWidth="1.5" />
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M0.857178 6H10.3929"
+                        stroke="#1A1A1A"
+                        strokeWidth="1.5"
+                      />
+                      <path
+                        d="M6.39282 10L10.3928 6L6.39282 2"
+                        stroke="#1A1A1A"
+                        strokeWidth="1.5"
+                      />
                     </svg>
                   </div>
                 </div>
@@ -641,6 +760,20 @@ const EditEvent = () => {
             </div>
           </div>
         ) : null}
+
+        {showMapModal && (
+          <LocationMapModal
+            onSave={(loc) => {
+              setLocationLat(loc.latitude);
+              setLocationLng(loc.longitude);
+              setLocation(loc.displayAddress || loc.geocodedAddress);
+              setGeocodedAddress(loc.geocodedAddress || null);
+              setShowMapModal(false);
+              toast.success("Location selected successfully");
+            }}
+            onClose={() => setShowMapModal(false)}
+          />
+        )}
       </div>
     </>
   );

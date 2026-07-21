@@ -166,6 +166,7 @@ export const events = pgTable("events", {
   // freeform `creator` text field — normalized to point at `profiles.id`
   // so organizer info (name, contact, etc.) is read from the profile
   // instead of being duplicated here.
+   geocodedAddress: text("geocoded_address"),
   createdBy: uuid("created_by").notNull().references(() => profiles.id),
   startsAt: timestamp("starts_at", {
     withTimezone: true,
