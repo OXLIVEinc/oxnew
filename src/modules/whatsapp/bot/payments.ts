@@ -16,8 +16,12 @@ import { handleTicketDelivery } from '../queues/ticket_confirmation';
  * webhook retry (Paystack resends on any non-2xx) can never double-fulfil
  * an order.
  */
-export async function completeTicketOrderPayment(reference: string, amountKobo?: number): Promise<void> {
+export async function completeTicketOrderPayment(
+  reference: string,
+  amountKobo?: number
+): Promise<void> {
   const order = await db.findTicketOrderByReference(reference);
+
   if (!order) {
     console.warn(`[payments] no ticket order found for reference ${reference}`);
     return;
@@ -25,21 +29,28 @@ export async function completeTicketOrderPayment(reference: string, amountKobo?:
 
   const isNewPayment = await db.recordProcessedPaymentIfNew({
     reference,
-    paymentType: 'ticket',
+    paymentType: "ticket",
     userId: order.userId,
     ticketOrderId: order.id,
     amount: amountKobo != null ? amountKobo / 100 : Number(order.amount),
   });
-  if (!isNewPayment) return; // already processed this exact gateway reference
 
-  if (order.status !== 'paid') {
+  if (!isNewPayment) return;
+
+  if (order.status !== "paid") {
     await db.markTicketOrderPaid(order.id);
   }
 
-  // Generates QR images + event registrations, then hands off delivery to
-  // the worker so the webhook response isn't blocked on image rendering.
+  // Generate tickets for both web and WhatsApp orders.
   await db.createTicketsForOrder(order);
-  await handleTicketDelivery(order.id)
+
+  // Web orders stop here.
+  if (order.orderSource === "web") {
+    return;
+  }
+
+  // WhatsApp-specific post-purchase flow.
+  await handleTicketDelivery(order.id);
   await enqueueHotelUpsell(order.id);
   await enqueueReferralUpsell(order.id);
 
@@ -49,7 +60,49 @@ export async function completeTicketOrderPayment(reference: string, amountKobo?:
   }
 
   const session = await getSession(order.phone);
-  if (session.state === 'EVENT_CHECKOUT_PENDING' && session.context.orderId === order.id) {
+  if (
+    session.state === "EVENT_CHECKOUT_PENDING" &&
+    session.context.orderId === order.id
+  ) {
+    await setState(order.phone, "MAIN_MENU", {});
+  }
+}
+
+
+export async function completeFreeTicketOrder(reference: string): Promise<void> {
+  const order = await db.findTicketOrderByReference(reference);
+
+  if (!order) {
+    console.warn(`[tickets] no ticket order found for reference ${reference}`);
+    return;
+  }
+
+  if (order.status !== 'paid') {
+    await db.markTicketOrderPaid(order.id);
+  }
+
+  await db.createTicketsForOrder(order);
+
+  // Web orders stop here.
+  if (order.orderSource === 'web') {
+    return;
+  }
+
+  // WhatsApp-specific flow.
+  await handleTicketDelivery(order.id);
+  await enqueueHotelUpsell(order.id);
+  await enqueueReferralUpsell(order.id);
+
+  const event = await db.getEventById(order.eventId);
+  if (event) {
+    await enqueuePreEventReminder(order.id, event.startsAt);
+  }
+
+  const session = await getSession(order.phone);
+  if (
+    session.state === 'EVENT_CHECKOUT_PENDING' &&
+    session.context.orderId === order.id
+  ) {
     await setState(order.phone, 'MAIN_MENU', {});
   }
 }
