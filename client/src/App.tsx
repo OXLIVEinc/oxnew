@@ -17,7 +17,7 @@ import NotFound from "./pages/NotFound";
 import CheckoutPage from "./pages/review/CheckoutPage";
 import HotelOrderPage from "./pages/review/HotelOrderPage";
 import TransferClaimPage from "./pages/review/TransferClaimPage";
-import About from "./pages/About";
+// import About from "./pages/About";
 import Help from "./pages/Help";
 
 // Define route configuration
