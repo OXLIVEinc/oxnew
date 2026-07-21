@@ -124,18 +124,15 @@ export default function LocationMapModal({ onSave, onClose, initialLocation }: P
         const data = await res.json();
         const detected = data.display_name || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
         setGeocodedAddress(detected);
-        // Only auto-fill the display address if the user hasn't customized it yet.
-        setDisplayAddressEdited((edited) => {
-          if (!edited) setDisplayAddress(detected);
-          return edited;
-        });
+        // A new pin selection always refreshes the display address,
+        // even if the user had previously hand-edited it.
+        setDisplayAddress(detected);
+        setDisplayAddressEdited(false);
       } catch {
         const fallback = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
         setGeocodedAddress(fallback);
-        setDisplayAddressEdited((edited) => {
-          if (!edited) setDisplayAddress(fallback);
-          return edited;
-        });
+        setDisplayAddress(fallback);
+        setDisplayAddressEdited(false);
       } finally {
         setGeocoding(false);
       }
