@@ -17,7 +17,7 @@ export default {
         sans: ['Host Grotesk', 'sans-serif'],
       },
        screens: {
-      xs: "480px", // or 475px, 500px, etc.
+      xs: "320px", // or 475px, 500px, etc.
     },
       colors: {
         border: "hsl(var(--border))",

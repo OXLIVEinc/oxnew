@@ -1,7 +1,6 @@
 // src/components/discover/DiscoverEventCard.tsx
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin } from 'lucide-react';
 import { formatEventSchedule } from '@/lib/eventSchedule';
 import type { EventSummary } from '@/lib/api/types';
 import { EventLikeShare } from '../EventLikeShare';
@@ -22,7 +21,19 @@ export const DiscoverEventCard: React.FC<Props> = ({ event, onAuthRequired }) =>
   const navigate = useNavigate();
   const schedule = formatEventSchedule(event.schedule);
   const live = isEventLive(event);
-  const {user} = useAuth()
+  const { user } = useAuth();
+
+  const FreeBadge = (
+    <span className="text-[10px] font-semibold uppercase tracking-wide bg-emerald-500 text-white px-2 py-0.5 rounded shadow-sm">
+      FREE
+    </span>
+  );
+
+  const LiveBadge = (
+    <span className="text-[10px] font-semibold uppercase tracking-wide bg-red-600 text-white px-2 py-0.5 rounded">
+      LIVE
+    </span>
+  );
 
   return (
     <div
@@ -43,17 +54,17 @@ export const DiscoverEventCard: React.FC<Props> = ({ event, onAuthRequired }) =>
           />
 
           {/* Like button - Top Right */}
-          {
-            user && <div className="absolute top-3 right-3 z-10">
-            <EventLikeShare
-              eventId={event.id}
-              eventTitle={event.title}
-              eventCode={event.eventCode || ''} 
-              variant="like-only-compact"
-              onAuthRequired={onAuthRequired}
-            />
-          </div>
-          }
+          {user && (
+            <div className="absolute top-3 right-3 z-10">
+              <EventLikeShare
+                eventId={event.id}
+                eventTitle={event.title}
+                eventCode={event.eventCode || ''}
+                variant="like-only-compact"
+                onAuthRequired={onAuthRequired}
+              />
+            </div>
+          )}
         </div>
 
         {/* Content Section - Grows to fill remaining height */}
@@ -63,20 +74,15 @@ export const DiscoverEventCard: React.FC<Props> = ({ event, onAuthRequired }) =>
             <h3 className="font-semibold text-sm leading-tight line-clamp-2 flex-1">
               {event.title}
             </h3>
-            
-            <div className="flex items-center gap-1 shrink-0">
-              {live && (
-                <span className="text-[10px] font-semibold uppercase tracking-wide bg-red-600 text-white px-2 py-0.5 rounded">
-                  LIVE
-                </span>
-              )}
-              {!event.isPaid && (
-                <span className="text-[10px] font-semibold uppercase tracking-wide bg-emerald-500 text-white px-2 py-0.5 rounded">
-                  FREE
-                </span>
-              )}
-            </div>
           </div>
+
+          {/* Badges row - small screens only */}
+          {(live || !event.isPaid) && (
+            <div className="flex  items-center gap-1 mb-2">
+              {true && LiveBadge}
+              {!event.isPaid && FreeBadge}
+            </div>
+          )}
 
           {/* Date */}
           <p className="text-xs text-muted-foreground mb-2">
@@ -85,11 +91,8 @@ export const DiscoverEventCard: React.FC<Props> = ({ event, onAuthRequired }) =>
 
           {/* Location */}
           <p className="text-xs text-muted-foreground flex items-center gap-1 mb-auto">
-            <MapPin size={13} className="shrink-0" />
             {event.venue || event.address}
           </p>
-
-          {/* Removed the entire "going" + heart bottom section as requested */}
         </div>
       </div>
     </div>
