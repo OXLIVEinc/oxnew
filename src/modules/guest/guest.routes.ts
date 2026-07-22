@@ -4,7 +4,7 @@ import * as controller from "./guest.controller";
 
 const router = Router();
 
-router.use(requireAuth, requireRole("guest"));
+router.use(requireAuth);
 router.get("/events", controller.listMyEvents);
 router.get("/tickets", controller.listMyTickets);
 

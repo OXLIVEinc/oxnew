@@ -79,8 +79,13 @@ const MyEvents = () => {
   const [activeTab, setActiveTab] = useState<'created' | 'registered'>('created');
 
   const { data: createdRaw, isLoading: createdLoading } = useMyOrganizerEvents();
-  const { data: registeredRaw, isLoading: registeredLoading } = useMyRegisteredEvents('all');
+  // const { data: registeredRaw, isLoading: registeredLoading } = useMyRegisteredEvents('all');
   const deleteEvent = useDeleteEvent();
+
+  // const createdRaw:any = []
+  // const createdLoading = false
+  const registeredRaw:any = []
+  const registeredLoading = false
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/');
