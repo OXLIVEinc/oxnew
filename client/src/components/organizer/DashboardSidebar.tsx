@@ -6,7 +6,7 @@ import {
   LayoutDashboard, CalendarDays, Users, QrCode, BarChart3, Send, LogOut, X, UserCircle, Compass, Ticket, CreditCard,
 } from "lucide-react";
 
-export type DashboardTab = "overview" | "events" | "guests" | "scanner" | "analytics" | "campaigns" | "brand" | "tickets" | "subscription";
+export type DashboardTab = "overview" | "events" | "guests" | "scanner" | "analytics" | "campaigns" | "settings" | "tickets" | "subscription";
 
 interface DashboardSidebarProps {
   activeTab: DashboardTab;
@@ -25,7 +25,7 @@ const navItems: { key: DashboardTab; label: string; icon: React.ElementType }[] 
   { key: "campaigns", label: "Campaigns", icon: Send },
   { key: "tickets", label: "My Tickets", icon: Ticket },
   { key: "subscription", label: "Plans & Pricing", icon: CreditCard },
-  { key: "brand", label: "Brand Profile", icon: UserCircle },
+  { key: "settings", label: "Settings", icon: UserCircle },
 ];
 
 export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({ activeTab, onTabChange, userName, isMobileOpen, onMobileClose }) => {

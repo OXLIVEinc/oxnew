@@ -9,6 +9,7 @@ import { PLAN_PRICES } from "@/hooks/useSubscription";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
+import { Skeleton } from "../ui/skeleton";
 
 const PLANS = [
   { key: "on_demand", name: "On-Demand", features: ["10,000 guests/month", "5% ticket commission"] },
@@ -16,6 +17,49 @@ const PLANS = [
   { key: "advanced", name: "Advanced", features: ["Unlimited events", "Email & mobile marketing", "0.5% per ticket"], popular: true },
   { key: "pro", name: "Pro", features: ["Unlimited everything", "Dedicated manager", "0% commission"] },
 ];
+
+const SubscriptionPanelSkeleton = () => (
+  <div className="space-y-6 animate-pulse">
+    {/* Current Plan */}
+    <Card>
+      <CardContent className="p-6 flex items-center gap-3">
+        <Skeleton className="h-10 w-10 rounded-full" />
+
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-7 w-36" />
+        </div>
+      </CardContent>
+    </Card>
+
+    {/* Plans */}
+    <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <Card key={i}>
+          <CardHeader className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Skeleton className="h-6 w-24" />
+              <Skeleton className="h-6 w-16" />
+            </div>
+          </CardHeader>
+
+          <CardContent className="space-y-5">
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, j) => (
+                <div key={j} className="flex items-center gap-2">
+                  <Skeleton className="h-4 w-4 rounded-full" />
+                  <Skeleton className="h-4 flex-1" />
+                </div>
+              ))}
+            </div>
+
+            <Skeleton className="h-10 w-full" />
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  </div>
+);
 
 export const SubscriptionPanel: React.FC = () => {
   const { data: subscription, isLoading } = useOrganizerSubscription();
@@ -38,7 +82,9 @@ export const SubscriptionPanel: React.FC = () => {
     }
   };
 
-  if (isLoading) return <div className="py-12 text-center text-muted-foreground">Loading subscription...</div>;
+ if (isLoading) {
+  return <SubscriptionPanelSkeleton />;
+}
 
   const currentPlan = subscription?.plan ?? "on_demand";
 

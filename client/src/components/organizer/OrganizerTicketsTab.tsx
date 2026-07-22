@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserRole } from '@/hooks/useUserRole';
-import { QRCodeSVG } from 'qrcode.react';
-import { Download } from 'lucide-react';
 
 interface TicketInfo {
   id: string;
@@ -16,20 +15,60 @@ interface TicketInfo {
   tier_name: string | null;
 }
 
+async function downloadTicketImage(ticket: TicketInfo) {
+  try {
+    const response = await fetch(ticket.qr_code);
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `ticket-${ticket.event_title
+      .replace(/\s+/g, '-')
+      .toLowerCase()}.png`;
+
+    link.click();
+    URL.revokeObjectURL(url);
+  } catch {
+    window.open(ticket.qr_code, '_blank');
+  }
+}
+
+const TicketsSkeleton = () => (
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-pulse">
+    {Array.from({ length: 4 }).map((_, i) => (
+      <div
+        key={i}
+        className="border border-border overflow-hidden"
+      >
+        <div className="aspect-[3/5] bg-muted" />
+        <div className="h-12 bg-muted border-t border-border" />
+      </div>
+    ))}
+  </div>
+);
+
 export const OrganizerTicketsTab: React.FC = () => {
   const { user } = useUserRole();
+
   const [tickets, setTickets] = useState<TicketInfo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [view, setView] = useState<'active' | 'checked-in'>('active');
 
   useEffect(() => {
-    if (user) fetchTickets();
+    if (user) {
+      fetchTickets();
+    }
   }, [user]);
 
   const fetchTickets = async () => {
     if (!user) return;
+
+    setLoading(true);
+
     const { data } = await supabase
       .from('tickets')
-      .select(`*`)
+      .select('*')
       .eq('user_id', user.id);
 
     const list: TicketInfo[] = (data || []).map((t: any) => ({
@@ -48,27 +87,105 @@ export const OrganizerTicketsTab: React.FC = () => {
     setLoading(false);
   };
 
-  if (loading) return <div className="py-12 text-center text-muted-foreground">Loading tickets...</div>;
-  if (tickets.length === 0) return <div className="py-12 text-center text-muted-foreground">No tickets purchased yet. You can register for events from the Discover page.</div>;
+  const activeTickets = tickets.filter((t) => !t.checked_in);
+  const checkedInTickets = tickets.filter((t) => t.checked_in);
+
+  const displayedTickets =
+    view === 'active' ? activeTickets : checkedInTickets;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-      {tickets.map((ticket) => (
-        <div key={ticket.id} className="border border-border rounded-xl overflow-hidden" data-ticket-id={ticket.id}>
-          <div className="bg-foreground text-background px-6 py-3 flex items-center justify-between">
-            <span className={`text-[11px] uppercase px-2 py-0.5 rounded ${
-              ticket.checked_in ? 'bg-green-500 text-white' : 'bg-background text-foreground'
-            }`}>
-              {ticket.checked_in ? '✓ Checked In' : 'Valid'}
-            </span>
-          </div>
-          <div className="text-center">
-            <div className="flex justify-center mb-4">
-             <img src={ticket.qr_code} alt="" />
-            </div>
-          </div>
+    <div className="space-y-6">
+      {/* Toggle */}
+      <div className="flex w-fit border border-border">
+        <button
+          onClick={() => setView('active')}
+          className={`px-4 py-2 text-[11px] uppercase font-medium transition-colors ${
+            view === 'active'
+              ? 'bg-foreground text-background'
+              : 'bg-background hover:bg-muted'
+          }`}
+        >
+          Active ({activeTickets.length})
+        </button>
+
+        <button
+          onClick={() => setView('checked-in')}
+          className={`px-4 py-2 text-[11px] uppercase font-medium border-l border-border transition-colors ${
+            view === 'checked-in'
+              ? 'bg-foreground text-background'
+              : 'bg-background hover:bg-muted'
+          }`}
+        >
+          Checked In ({checkedInTickets.length})
+        </button>
+      </div>
+
+      {loading ? (
+        <TicketsSkeleton />
+      ) : tickets.length === 0 ? (
+        <div className="py-12 text-center text-muted-foreground">
+          No tickets purchased yet.
         </div>
-      ))}
+      ) : displayedTickets.length === 0 ? (
+        <div className="py-12 text-center text-muted-foreground">
+          {view === 'active'
+            ? 'No active tickets.'
+            : 'No checked-in tickets.'}
+        </div>
+      ) : (
+        <div
+          className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 ${
+            view === 'checked-in' ? 'opacity-50' : ''
+          }`}
+        >
+          {displayedTickets.map((ticket) => (
+            <TicketCard
+              key={ticket.id}
+              ticket={ticket}
+              drafted={view === 'checked-in'}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const TicketCard: React.FC<{
+  ticket: TicketInfo;
+  drafted?: boolean;
+}> = ({ ticket, drafted }) => {
+  return (
+    <div
+      className={`border border-border overflow-hidden ${
+        drafted ? 'grayscale' : ''
+      }`}
+    >
+      <div className="text-center">
+        <div className="border-t border-dashed border-border" />
+
+        <div
+          className={`flex justify-center mb-4 ${
+            drafted ? 'opacity-30' : ''
+          }`}
+        >
+          <img
+            src={ticket.qr_code}
+            alt={ticket.event_title}
+            className="w-full max-w-full"
+          />
+        </div>
+
+        {!drafted && (
+          <button
+            onClick={() => downloadTicketImage(ticket)}
+            className="w-full flex items-center justify-center gap-2 bg-foreground text-background py-3 text-[11px] uppercase font-medium hover:bg-primary hover:text-primary-foreground transition-colors"
+          >
+            <Download size={14} />
+            Download Ticket
+          </button>
+        )}
+      </div>
     </div>
   );
 };

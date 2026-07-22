@@ -11,14 +11,21 @@ import { GuestListPanel } from "@/components/organizer/GuestListPanel";
 import { AnalyticsPanel } from "@/components/organizer/AnalyticsPanel";
 import { CampaignsPanel } from "@/components/organizer/CampaignsPanel";
 import { QRScannerPanel } from "@/components/organizer/QRScannerPanel";
-import { ProfilePanel } from "@/components/organizer/ProiflePanel";
 import { OrganizerTicketsTab } from "@/components/organizer/OrganizerTicketsTab";
 import { SubscriptionPanel } from "@/components/organizer/SubscriptionPanel";
 import { useOrganizerOverview } from "@/hooks/api/useOrganizer";
+import { SettingsPanel } from "@/components/organizer/Settings";
 
 const TAB_TITLES: Record<DashboardTab, string> = {
-  overview: "Dashboard", events: "My Events", guests: "Guest List", scanner: "QR Check-in",
-  analytics: "Analytics", campaigns: "Campaigns", brand: "Brand Profile", tickets: "My Tickets", subscription: "Plans & Pricing",
+  overview: "Dashboard",
+  events: "My Events",
+  guests: "Guest List",
+  scanner: "QR Check-in",
+  analytics: "Analytics",
+  campaigns: "Campaigns",
+settings: "Settings",
+  tickets: "My Tickets",
+  subscription: "Plans & Pricing",
 };
 
 const OrganizerDashboard = () => {
@@ -66,9 +73,9 @@ const OrganizerDashboard = () => {
       case "analytics": return <AnalyticsPanel eventId={selectedEventId} />;
       case "campaigns": return <CampaignsPanel eventId={selectedEventId} />;
       case "scanner": return <QRScannerPanel eventId={selectedEventId} />;
-      case "brand": return <ProfilePanel />;
       case "tickets": return <OrganizerTicketsTab />;
       case "subscription": return <SubscriptionPanel />;
+      case "settings": return <SettingsPanel />;
       default: return null;
     }
   };
