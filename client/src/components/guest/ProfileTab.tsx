@@ -1,74 +1,119 @@
-import React, { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import React, { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/context/AuthContext";
 
-export const ProfileTab: React.FC<{ userId: string }> = ({ userId }) => {
+const ProfileSkeleton = () => (
+  <div className="max-w-lg space-y-5 animate-pulse">
+    {Array.from({ length: 5 }).map((_, i) => (
+      <div key={i}>
+        <div className="h-3 w-24 bg-muted rounded mb-2" />
+        <div className="h-12 w-full bg-muted rounded" />
+      </div>
+    ))}
+
+    <div className="h-12 w-full bg-muted rounded mt-2" />
+  </div>
+);
+
+export const ProfileTab: React.FC = () => {
+  const { profile, authUser, loading, refresh } = useAuth();
   const { toast } = useToast();
-  const [displayName, setDisplayName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [gender, setGender] = useState('');
-  const [locationCountry, setLocationCountry] = useState('');
-  const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(true);
+  console.log(profile);
+
+  const [displayName, setDisplayName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [gender, setGender] = useState("");
+  const [locationCountry, setLocationCountry] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setEmail(user?.email || '');
+    if (!profile) return;
 
-      const { data } = await supabase
-        .from('profiles')
-        .select('display_name, phone, gender, location_country')
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      if (data) {
-        setDisplayName(data.display_name || '');
-        setPhone(data.phone || '');
-        setGender(data.gender || '');
-        setLocationCountry(data.location_country || '');
-      }
-      setLoading(false);
-    };
-    fetchProfile();
-  }, [userId]);
+    setDisplayName(profile.display_name || "");
+    setPhone(profile.phone || "");
+    setGender(profile.gender || "");
+    setLocationCountry(profile.location_country || "");
+  }, [profile]);
 
   const handleSave = async () => {
+    if (!profile) return;
+
     setSaving(true);
+
     const { error } = await supabase
-      .from('profiles')
+      .from("profiles")
       .update({
         display_name: displayName.trim() || null,
-        phone: phone.trim() || null,
         gender: gender.trim() || null,
         location_country: locationCountry.trim() || null,
       })
-      .eq('user_id', userId);
+      .eq("id", profile.id);
 
     if (error) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     } else {
-      toast({ title: 'Profile updated!', description: 'Your profile has been saved.' });
+      await refresh();
+
+      toast({
+        title: "Profile updated!",
+        description: "Your profile has been saved.",
+      });
     }
+
     setSaving(false);
   };
 
-  if (loading) return <div className="py-12 text-center">Loading profile...</div>;
+  if (loading) {
+    return <ProfileSkeleton />;
+  }
+
+  if (!profile) {
+    return (
+      <div className="text-sm text-muted-foreground">
+        Unable to load your profile.
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-lg space-y-5">
       <div>
-        <label className="block text-[11px] uppercase font-medium mb-2">Email</label>
+        <label className="block text-[11px] uppercase font-medium mb-2">
+          Email
+        </label>
         <input
           type="email"
-          value={email}
+          value={authUser?.email ?? ""}
           disabled
           className="w-full border border-muted px-4 py-3 text-sm bg-muted text-muted-foreground"
         />
       </div>
+
       <div>
-        <label className="block text-[11px] uppercase font-medium mb-2">Full Name</label>
+        <label className="block text-[11px] uppercase font-medium mb-2">
+          Phone
+        </label>
+        <input
+          type="tel"
+          value={phone}
+          disabled
+          className="w-full border border-muted px-4 py-3 text-sm bg-muted text-muted-foreground cursor-not-allowed"
+        />
+        {/* <p className="mt-2 text-xs text-muted-foreground">
+          Phone numbers cannot be changed. Contact support if you need to update
+          it.
+        </p> */}
+      </div>
+
+      <div>
+        <label className="block text-[11px] uppercase font-medium mb-2">
+          Full Name
+        </label>
         <input
           type="text"
           value={displayName}
@@ -76,17 +121,11 @@ export const ProfileTab: React.FC<{ userId: string }> = ({ userId }) => {
           className="w-full border border-border px-4 py-3 text-sm focus:outline-none"
         />
       </div>
+
       <div>
-        <label className="block text-[11px] uppercase font-medium mb-2">Phone</label>
-        <input
-          type="tel"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          className="w-full border border-border px-4 py-3 text-sm focus:outline-none"
-        />
-      </div>
-      <div>
-        <label className="block text-[11px] uppercase font-medium mb-2">Gender</label>
+        <label className="block text-[11px] uppercase font-medium mb-2">
+          Gender
+        </label>
         <select
           value={gender}
           onChange={(e) => setGender(e.target.value)}
@@ -99,22 +138,26 @@ export const ProfileTab: React.FC<{ userId: string }> = ({ userId }) => {
           <option value="prefer-not-to-say">Prefer not to say</option>
         </select>
       </div>
+
       <div>
-        <label className="block text-[11px] uppercase font-medium mb-2">Country</label>
+        <label className="block text-[11px] uppercase font-medium mb-2">
+          Country
+        </label>
         <input
           type="text"
           value={locationCountry}
           onChange={(e) => setLocationCountry(e.target.value)}
-          className="w-full border border-border px-4 py-3 text-sm focus:outline-none"
           placeholder="e.g. Nigeria, United States"
+          className="w-full border border-border px-4 py-3 text-sm focus:outline-none"
         />
       </div>
+
       <button
         onClick={handleSave}
         disabled={saving}
         className="w-full bg-foreground text-background px-6 py-3 text-[11px] uppercase font-medium hover:bg-primary hover:text-primary-foreground transition-colors disabled:opacity-50"
       >
-        {saving ? 'Saving...' : 'Save Profile'}
+        {saving ? "Saving..." : "Save Profile"}
       </button>
     </div>
   );

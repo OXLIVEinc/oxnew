@@ -10,6 +10,26 @@ interface Notification {
   created_at: string;
 }
 
+const NotificationsSkeleton = () => (
+  <div className="space-y-3 w-full animate-pulse">
+    {Array.from({ length: 6 }).map((_, i) => (
+      <div key={i} className="border border-border p-4">
+        <div className="flex items-start justify-between">
+          <div className="flex-1 space-y-2">
+            <div className="h-4 w-1/3 bg-muted rounded" />
+            <div className="h-4 w-full bg-muted rounded" />
+            <div className="h-4 w-5/6 bg-muted rounded" />
+          </div>
+
+          <div className="w-2 h-2 rounded-full bg-muted flex-shrink-0 mt-1" />
+        </div>
+
+        <div className="h-3 w-28 bg-muted rounded mt-3" />
+      </div>
+    ))}
+  </div>
+);
+
 export const NotificationsTab: React.FC<{ userId: string }> = ({ userId }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,7 +53,9 @@ export const NotificationsTab: React.FC<{ userId: string }> = ({ userId }) => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
   };
 
-  if (loading) return <div className="py-12 text-center">Loading notifications...</div>;
+  if (loading) {
+  return <NotificationsSkeleton />;
+}
 
   if (notifications.length === 0) {
     return <div className="py-12 text-center text-muted-foreground">No notifications yet</div>;

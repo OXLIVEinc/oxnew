@@ -1,7 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Download } from 'lucide-react';
 import { useMyTickets } from '@/hooks/api/useGuestDashboard';
-import { formatEventSchedule } from '@/lib/eventSchedule';
 import type { GuestTicket } from '@/lib/api/types';
 
 /**
@@ -13,102 +12,130 @@ import type { GuestTicket } from '@/lib/api/types';
  * regenerated client-side.
  * -------------------------------------------------------------------------
  */
+
 async function downloadTicketImage(ticket: GuestTicket) {
   try {
     const response = await fetch(ticket.qrCode);
     const blob = await response.blob();
     const url = URL.createObjectURL(blob);
+
     const link = document.createElement('a');
     link.href = url;
-    link.download = `ticket-${ticket.event.title.replace(/\s+/g, '-').toLowerCase()}.png`;
+    link.download = `ticket-${ticket.event.title
+      .replace(/\s+/g, '-')
+      .toLowerCase()}.png`;
+
     link.click();
     URL.revokeObjectURL(url);
   } catch {
-    // Fall back to just opening it — still lets the guest save it manually.
     window.open(ticket.qrCode, '_blank');
   }
 }
 
+const TicketsSkeleton = () => (
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-pulse">
+    {Array.from({ length: 4 }).map((_, i) => (
+      <div key={i} className="border border-border overflow-hidden">
+        <div className="aspect-[3/5] bg-muted" />
+        <div className="h-12 bg-muted border-t border-border" />
+      </div>
+    ))}
+  </div>
+);
+
 export const TicketsTab: React.FC = () => {
   const { data: tickets, isLoading } = useMyTickets();
+  const [view, setView] = useState<'active' | 'checked-in'>('active');
 
-  if (isLoading) return <div className="py-12 text-center">Loading tickets...</div>;
-  if (!tickets || tickets.length === 0) {
-    return (
-      <div className="py-12 text-center text-muted-foreground">
-        No tickets yet. Register for events to get tickets.
-      </div>
-    );
-  }
+  const activeTickets = tickets?.filter((t) => !t.checkedIn) ?? [];
+  const checkedInTickets = tickets?.filter((t) => t.checkedIn) ?? [];
 
-  const activeTickets = tickets.filter((t) => !t.checkedIn);
-  const checkedInTickets = tickets.filter((t) => t.checkedIn);
+  const displayedTickets =
+    view === 'active' ? activeTickets : checkedInTickets;
 
   return (
-    <div className="space-y-8">
-      {activeTickets.length > 0 && (
-        <div>
-          <h3 className="text-[11px] uppercase font-medium tracking-wider mb-4">Active Tickets</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {activeTickets.map((ticket) => (
-              <TicketCard key={ticket.id} ticket={ticket} />
-            ))}
-          </div>
-        </div>
-      )}
+    <div className="space-y-6">
+      {/* Always visible toggle */}
+      <div className="flex w-fit border border-border">
+        <button
+          onClick={() => setView('active')}
+          className={`px-4 py-2 text-[11px] uppercase font-medium transition-colors ${
+            view === 'active'
+              ? 'bg-foreground text-background'
+              : 'bg-background hover:bg-muted'
+          }`}
+        >
+          Active ({activeTickets.length})
+        </button>
 
-      {checkedInTickets.length > 0 && (
-        <div>
-          <h3 className="text-[11px] uppercase font-medium tracking-wider mb-4 text-muted-foreground">
-            Past / Checked In
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 opacity-50">
-            {checkedInTickets.map((ticket) => (
-              <TicketCard key={ticket.id} ticket={ticket} drafted />
-            ))}
-          </div>
+        <button
+          onClick={() => setView('checked-in')}
+          className={`px-4 py-2 text-[11px] uppercase font-medium border-l border-border transition-colors ${
+            view === 'checked-in'
+              ? 'bg-foreground text-background'
+              : 'bg-background hover:bg-muted'
+          }`}
+        >
+          Checked In ({checkedInTickets.length})
+        </button>
+      </div>
+
+      {isLoading ? (
+        <TicketsSkeleton />
+      ) : !tickets || tickets.length === 0 ? (
+        <div className="py-12 text-center text-muted-foreground">
+          No tickets yet. Register for events to get tickets.
+        </div>
+      ) : displayedTickets.length === 0 ? (
+        <div className="py-12 text-center text-muted-foreground">
+          {view === 'active'
+            ? 'No active tickets.'
+            : 'No checked-in tickets.'}
+        </div>
+      ) : (
+        <div
+          className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 ${
+            view === 'checked-in' ? 'opacity-50' : ''
+          }`}
+        >
+          {displayedTickets.map((ticket) => (
+            <TicketCard
+              key={ticket.id}
+              ticket={ticket}
+              drafted={view === 'checked-in'}
+            />
+          ))}
         </div>
       )}
     </div>
   );
 };
 
-const TicketCard: React.FC<{ ticket: GuestTicket; drafted?: boolean }> = ({ ticket, drafted }) => {
-  const schedule = formatEventSchedule(ticket.event.schedule);
+const TicketCard: React.FC<{
+  ticket: GuestTicket;
+  drafted?: boolean;
+}> = ({ ticket, drafted }) => {
   return (
-    <div className={`border border-border overflow-hidden ${drafted ? 'grayscale' : ''}`}>
-      <div className="bg-foreground text-background px-6 py-3 flex items-center justify-between">
-        <span className="text-[11px] uppercase font-medium tracking-wider">{ticket.tierName}</span>
-        <span
-          className={`text-[11px] uppercase px-2 py-0.5 ${
-            ticket.checkedIn ? 'bg-muted-foreground text-background' : 'bg-background text-foreground'
+    <div
+      className={`border border-border overflow-hidden ${
+        drafted ? 'grayscale' : ''
+      }`}
+    >
+      <div className="text-center">
+        <div className="border-t border-dashed border-border" />
+
+        <div
+          className={`flex justify-center mb-4 ${
+            drafted ? 'opacity-30' : ''
           }`}
         >
-          {ticket.checkedIn ? '✓ Checked In' : 'Valid'}
-        </span>
-      </div>
-      <div className="p-6 text-center">
-        <h3 className="font-medium text-lg mb-1">{ticket.event.title}</h3>
-        <p className="text-[11px] text-muted-foreground uppercase mb-1">
-          {schedule.dateLabel} • {schedule.timeLabel}
-        </p>
-        <p className="text-[11px] text-muted-foreground mb-2">{ticket.event.address}</p>
-        {ticket.attendeeName && <p className="text-xs text-foreground mb-1">👤 {ticket.attendeeName}</p>}
-        {ticket.checkInCode && (
-          <div className="bg-muted px-3 py-2 rounded mb-4 inline-block">
-            <span className="text-[11px] uppercase text-muted-foreground">Check-in Code: </span>
-            <span className="font-mono font-bold text-sm">{ticket.checkInCode}</span>
-          </div>
-        )}
-        <div className="border-t border-dashed border-border my-4" />
-        {/* The ticket card image (QR baked in) generated by the backend. */}
-        <div className={`flex justify-center mb-4 ${drafted ? 'opacity-30' : ''}`}>
           <img
             src={ticket.qrCode}
             alt={`Ticket QR for ${ticket.event.title}`}
-            className="w-[220px] max-w-full"
+            className="w-full max-w-full"
           />
         </div>
+
         {!drafted && (
           <button
             onClick={() => downloadTicketImage(ticket)}
