@@ -21,8 +21,18 @@ import {
   startOfDay,
   endOfDay,
 } from "date-fns";
-import { SearchX, ChevronLeft, ChevronRight } from "lucide-react";
+import { SearchX } from "lucide-react";
 import { EventFooter } from "@/components/EventFooter";
+
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 const TYPEWRITER_PHRASES = [
   "Built to Empower Events.",
@@ -290,31 +300,103 @@ const Discover = () => {
         </div>
 
         {/* Pagination */}
-        {pagination && pagination.totalPages > 1 && (
-          <div className="mt-12 flex items-center justify-center gap-4">
-            <button
-              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-              disabled={currentPage === 1 || isFetching}
-              className="flex items-center gap-2 px-6 py-3 rounded-2xl border border-border hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
-            >
-              <ChevronLeft size={18} />
-              Previous
-            </button>
+{/* Pagination */}
+{pagination && pagination.totalPages > 1 && (
+  <div className="mt-12">
+    <Pagination>
+      <PaginationContent>
+        <PaginationItem>
+          <PaginationPrevious
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              if (currentPage > 1 && !isFetching) {
+                setCurrentPage((p) => p - 1);
+              }
+            }}
+            className={
+              currentPage === 1 || isFetching
+                ? "pointer-events-none opacity-50"
+                : ""
+            }
+          />
+        </PaginationItem>
 
-            <div className="px-6 py-3 rounded-2xl border border-border font-medium">
-              Page <span className="text-primary">{currentPage}</span> of {pagination.totalPages}
-            </div>
+        {(() => {
+          const total = pagination.totalPages;
+          const pages: (number | "ellipsis")[] = [];
 
-            <button
-              onClick={() => setCurrentPage((prev) => Math.min(pagination.totalPages, prev + 1))}
-              disabled={currentPage === pagination.totalPages || isFetching}
-              className="flex items-center gap-2 px-6 py-3 rounded-2xl border border-border hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
-            >
-              Next
-              <ChevronRight size={18} />
-            </button>
-          </div>
-        )}
+          if (total <= 7) {
+            // Show everything when there aren't many pages
+            for (let i = 1; i <= total; i++) pages.push(i);
+          } else {
+            pages.push(1);
+
+            if (currentPage > 3) {
+              pages.push("ellipsis");
+            }
+
+            const start = Math.max(2, currentPage - 1);
+            const end = Math.min(total - 1, currentPage + 1);
+
+            for (let i = start; i <= end; i++) {
+              pages.push(i);
+            }
+
+            if (currentPage < total - 2) {
+              pages.push("ellipsis");
+            }
+
+            pages.push(total);
+          }
+
+          return pages.map((item, index) =>
+            item === "ellipsis" ? (
+              <PaginationItem key={`ellipsis-${index}`}>
+                <PaginationEllipsis />
+              </PaginationItem>
+            ) : (
+              <PaginationItem key={item}>
+                <PaginationLink
+                  href="#"
+                  isActive={item === currentPage}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (!isFetching) {
+                      setCurrentPage(item);
+                    }
+                  }}
+                >
+                  {item}
+                </PaginationLink>
+              </PaginationItem>
+            )
+          );
+        })()}
+
+        <PaginationItem>
+          <PaginationNext
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              if (
+                currentPage < pagination.totalPages &&
+                !isFetching
+              ) {
+                setCurrentPage((p) => p + 1);
+              }
+            }}
+            className={
+              currentPage === pagination.totalPages || isFetching
+                ? "pointer-events-none opacity-50"
+                : ""
+            }
+          />
+        </PaginationItem>
+      </PaginationContent>
+    </Pagination>
+  </div>
+)}
       </section>
 
       <EventFooter />

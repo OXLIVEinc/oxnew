@@ -1,7 +1,7 @@
 import {
   Dialog,
   DialogContent,
-  DialogOverlay
+  DialogOverlay,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { BadgeCheck } from "lucide-react";
@@ -22,53 +22,70 @@ export function EventCreatedModal({
   onViewEvents,
 }: EventCreatedModalProps) {
   return (
-    <Dialog  open={open} onOpenChange={onOpenChange}>
-        <DialogOverlay className="fixed inset-0 z-[99999999999999] bg-neutral-900/60 backdrop-blur-sm animate-[fadeIn_0.15s_ease-out]" />
-      <DialogContent className="z-[99999999999999] sm:max-w-lg rounded-3xl border-0 shadow-2xl animate-[slideUp_0.2s_ease-out]">
-        <div className="flex flex-col items-center text-center py-4">
-          <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center mb-5">
-            <BadgeCheck className="h-9 w-9 text-green-600" />
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogOverlay className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm" />
+
+      <DialogContent
+        className="
+          z-[99999]
+          w-[calc(100vw-2rem)]
+          max-w-md
+          max-h-[90vh]
+          overflow-y-auto
+          rounded-3xl
+          border-0
+          p-5
+          sm:p-6
+          shadow-2xl
+        "
+      >
+        <div className="flex flex-col items-center text-center">
+          <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-green-200 bg-green-50">
+            <BadgeCheck className="h-8 w-8 text-green-600" />
           </div>
 
-          <h2 className="text-2xl font-semibold">
-            Event Submitted Successfully
+          <h2 className="text-xl sm:text-2xl font-medium">
+            Event Submitted
           </h2>
 
-          <p className="mt-3 text-muted-foreground">
-            Your event has been created and submitted for review.
+          <p className="mt-2 max-w-xs text-sm leading-6 text-muted-foreground">
+            Your event has been submitted successfully and is awaiting review.
           </p>
 
-          <div className="mt-6 w-full rounded-lg border p-4 space-y-4 text-left">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">
-                Event Status
+          <div className="mt-6 w-full rounded-2xl border bg-muted/30 p-4">
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-sm text-muted-foreground">
+                Status
               </span>
 
-              <span className="font-medium capitalize">
+              <span className="rounded-full border px-3 py-1 text-xs font-medium capitalize whitespace-nowrap">
                 {status}
               </span>
             </div>
 
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">
-                Approval Status
+            <div className="mt-4 border-t pt-4 flex items-center justify-between gap-4">
+              <span className="text-sm text-muted-foreground">
+                Approval
               </span>
 
-              <span className="font-medium capitalize">
+              <span className="rounded-full border px-3 py-1 text-xs font-medium capitalize whitespace-nowrap">
                 {approvalStatus}
               </span>
             </div>
           </div>
 
-          <div className="mt-5 rounded-md bg-blue-50 border border-blue-200 p-4 text-sm text-blue-900">
-            Your event is currently under review by our team.
-            <br />
-            Approval usually takes less than <strong>24 hours</strong>.
-            You'll be notified once it's approved and becomes publicly visible.
+          <div className="mt-5 w-full rounded-2xl border bg-primary/5 p-4">
+            <p className="text-sm leading-6 text-muted-foreground">
+              Reviews are typically completed within{" "}
+              <span className="font-medium text-foreground">
+                24 hours
+              </span>
+              . You'll be notified once your event is approved.
+            </p>
           </div>
 
           <Button
-            className="w-full mt-6"
+            className="mt-6 h-11 w-full rounded-xl"
             onClick={onViewEvents}
           >
             Go to My Events
@@ -78,21 +95,3 @@ export function EventCreatedModal({
     </Dialog>
   );
 }
-
-<style>{`
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(12px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-`}</style>

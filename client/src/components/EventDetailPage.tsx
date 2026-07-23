@@ -52,6 +52,7 @@ export const EventDetailPage: React.FC = () => {
   const { isHotelPartner } = useAuth();
   const asideRef = useRef<HTMLDivElement>(null);
   const { data: event, isLoading: loading, isError, refetch } = useEvent(id);
+  console.log(event)
 
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();

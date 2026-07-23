@@ -11,7 +11,6 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { type User } from "@supabase/supabase-js";
 import { AuthSheet } from "@/components/AuthSheet";
 import { SEOHead } from "@/components/SEOHead";
 import { Trash2 } from "lucide-react";
@@ -46,6 +45,84 @@ import {
 } from "@/components/ui/select";
 import LocationMapModal from "@/components/LocationMapModal";
 import { MapPin } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { Skeleton } from "@/components/ui/skeleton";
+
+
+
+const EditEventSkeleton = () => (
+  <div className="min-h-screen bg-white">
+    <Navbar />
+
+    <div className="max-w-4xl mx-auto pt-24 md:pt-32 pb-8 md:pb-16 px-4 md:px-8">
+      <div className="space-y-8 animate-pulse">
+        {/* Title */}
+        <Skeleton className="h-14 w-3/4 rounded-none" />
+
+        {/* Date & Time */}
+        <div className="space-y-4">
+          <Skeleton className="h-14 w-full rounded-none" />
+          <Skeleton className="h-14 w-full rounded-none" />
+        </div>
+
+        {/* Location */}
+        <Skeleton className="h-12 w-full rounded-none" />
+
+        {/* Description */}
+        <Skeleton className="h-44 w-full rounded-none" />
+
+        {/* Metadata */}
+        <div className="space-y-4">
+          <Skeleton className="h-8 w-48 rounded-none" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Skeleton className="h-12 rounded-none" />
+            <Skeleton className="h-12 rounded-none" />
+            <Skeleton className="h-12 rounded-none" />
+          </div>
+        </div>
+
+        {/* Ticket Section */}
+        <div className="space-y-4">
+          <Skeleton className="h-8 w-56 rounded-none" />
+          <Skeleton className="h-32 w-full rounded-none" />
+        </div>
+
+        {/* Banner */}
+        <div className="space-y-3">
+          <Skeleton className="h-8 w-40 rounded-none" />
+          <Skeleton className="h-64 w-full rounded-none" />
+        </div>
+
+        {/* Gallery */}
+        <div className="space-y-3">
+          <Skeleton className="h-8 w-40 rounded-none" />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton
+                key={i}
+                className="aspect-square w-full rounded-none"
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Venue Map */}
+        <div className="space-y-3">
+          <Skeleton className="h-8 w-48 rounded-none" />
+          <Skeleton className="h-56 w-full rounded-none" />
+        </div>
+
+        {/* Buttons */}
+        <div className="flex gap-3">
+          <Skeleton className="h-12 flex-1 rounded-none" />
+          <Skeleton className="h-12 w-40 rounded-none" />
+          <Skeleton className="h-12 w-12 rounded-none" />
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
 
 const eventSchema = z.object({
   eventName: z.string().trim().min(1, "Event name is required").max(200),
@@ -232,11 +309,12 @@ const EditEvent = () => {
   const [locationLat, setLocationLat] = useState<number | null>(null);
   const [locationLng, setLocationLng] = useState<number | null>(null);
   const [description, setDescription] = useState("");
-  const [user, setUser] = useState<User | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showAuthModal, setShowAuthModal] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [currentStatus, setCurrentStatus] = useState("active");
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [geocodedAddress, setGeocodedAddress] = useState<string | null>(null);
+  const [showMapModal, setShowMapModal] = useState(false);
 
   const [isPaid, setIsPaid] = useState(false);
   const [ticketTiers, setTicketTiers] = useState<TicketTierFormValue[]>([]);
@@ -246,12 +324,10 @@ const EditEvent = () => {
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
-  const [venueMapPreview, setVenueMapPreview] = useState<string | null>(null);
-  const [venueMapFile, setVenueMapFile] = useState<File | null>(null);
+ const [venueMapPreview, setVenueMapPreview] = useState<string | null>(null);
+const [venueMapFile, setVenueMapFile] = useState<File | null>(null);
 
-  const [geocodedAddress, setGeocodedAddress] = useState<string | null>(null);
-  const [showMapModal, setShowMapModal] = useState(false);
-
+  const { profile: user } = useAuth();
   const navigate = useNavigate();
 
   const {
@@ -264,20 +340,11 @@ const EditEvent = () => {
   const updateTicketTier = useUpdateTicketTier(id ?? "");
   const deleteTicketTier = useDeleteTicketTier(id ?? "");
 
+  console.log(event);
+
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user || null);
-      if (!session?.user) setShowAuthModal(true);
-    });
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user || null);
-      if (session?.user) setShowAuthModal(false);
-      else setShowAuthModal(true);
-    });
-    return () => subscription.unsubscribe();
-  }, []);
+    setShowAuthModal(!user);
+  }, [user]);
 
   useEffect(() => {
     if (eventError) {
@@ -289,6 +356,7 @@ const EditEvent = () => {
   // Hydrate the form once from the fetched event
   useEffect(() => {
     if (!event || !user || hydrated) return;
+
     if (event.createdBy !== user.id) {
       toast.error("No permission");
       navigate("/my-events");
@@ -333,7 +401,7 @@ const EditEvent = () => {
       })),
     );
 
-    // Check if venue map exists on the event (using type assertion since the type might not have it)
+    // Check if venue map exists on the event
     const eventWithVenueMap = event as any;
     if (eventWithVenueMap.venueMap?.id) {
       setVenueMapPreview(eventWithVenueMap.venueMap.imageUrl);
@@ -384,7 +452,7 @@ const EditEvent = () => {
   };
 
   const handleSubmit = async (draft = false) => {
-    if (!user || !id) {
+    if (!user) {
       setShowAuthModal(true);
       return;
     }
@@ -465,26 +533,40 @@ const EditEvent = () => {
       await syncTicketTiers();
 
       // Handle venue map update
-      if (venueMapFile) {
-        const mapUrl = await uploadFile(venueMapFile, "venue-map");
-        // Check if venue map exists using the event data
-        const eventWithVenueMap = event as any;
-        if (eventWithVenueMap.venueMap?.id) {
-          await supabase
-            .from("venue_maps")
-            .update({ image_url: mapUrl })
-            .eq("id", eventWithVenueMap.venueMap.id);
-        } else {
-          await supabase
-            .from("venue_maps")
-            .insert({ event_id: id, image_url: mapUrl });
-        }
-      }
+      // In the handleSubmit function, after the venue map update:
+// Handle venue map update
+if (venueMapFile && id) {
+  const mapUrl = await uploadFile(venueMapFile, "venue-map");
+  const eventWithVenueMap = event as any;
+  if (eventWithVenueMap.venueMap?.id) {
+    await supabase
+      .from("venue_maps")
+      .update({ image_url: mapUrl })
+      .eq("id", eventWithVenueMap.venueMap.id);
+  } else {
+    await supabase
+      .from("venue_maps")
+      .insert({ event_id: id, image_url: mapUrl });
+  }
+  
+  // AFTER successful update, update the preview to the new URL
+  // so the component shows the updated image
+  setVenueMapPreview(mapUrl);
+  setVenueMapFile(null); // Clear the file since it's been uploaded
+}
+
+// Handle venue map removal
+if (venueMapPreview === null && !venueMapFile && (event as any)?.venueMap?.id) {
+  await supabase
+    .from("venue_maps")
+    .delete()
+    .eq("id", (event as any).venueMap.id);
+}
 
       // Handle gallery updates
       for (let i = 0; i < galleryItems.length; i++) {
         const item = galleryItems[i];
-        if (item.file) {
+        if (item.file && id) {
           const mediaUrl = await uploadFile(item.file, `gallery-${i}`);
           await supabase.from("event_gallery").insert({
             event_id: id,
@@ -526,16 +608,9 @@ const EditEvent = () => {
     }
   };
 
-  if (isLoadingEvent || !hydrated) {
-    return (
-      <div className="min-h-screen bg-white">
-        <Navbar />
-        <div className="flex h-screen items-center justify-center">
-          <div className="text-[#1A1A1A] text-2xl">Loading...</div>
-        </div>
-      </div>
-    );
-  }
+ if (isLoadingEvent || (!hydrated && user)) {
+  return <EditEventSkeleton />;
+}
 
   return (
     <>
@@ -638,24 +713,22 @@ const EditEvent = () => {
 
               {/* Location */}
               <div className="relative">
-                {
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full border rounded-none border-black justify-start h-12"
-                    onClick={() => setShowMapModal(true)}
-                  >
-                    <MapPin className="mr-2 h-4 w-4" />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full border rounded-none border-black justify-start h-12"
+                  onClick={() => setShowMapModal(true)}
+                >
+                  <MapPin className="mr-2 h-4 w-4" />
 
-                    {location ? (
-                      <span className="truncate">{location}</span>
-                    ) : (
-                      <span className="text-muted-foreground">
-                        Pick event location
-                      </span>
-                    )}
-                  </Button>
-                }
+                  {location ? (
+                    <span className="truncate">{location}</span>
+                  ) : (
+                    <span className="text-muted-foreground">
+                      Pick event location
+                    </span>
+                  )}
+                </Button>
               </div>
 
               {/* Description */}
@@ -701,13 +774,15 @@ const EditEvent = () => {
               />
 
               {/* Venue Seating Map */}
+              {/* Venue Seating Map */}
               <VenueSeatingMapEditor
-                mapImagePreview={venueMapPreview}
-                onMapImageChange={(file, preview) => {
-                  setVenueMapFile(file);
-                  setVenueMapPreview(preview);
-                }}
-              />
+  eventId={id || ""}
+  mapImagePreview={venueMapPreview}
+  onMapImageChange={(file: File | null, preview: string | null) => {
+    setVenueMapFile(file);
+    setVenueMapPreview(preview);
+  }}
+/>
 
               {/* Submit Buttons */}
               <div className="flex gap-3 items-center mt-4 md:mt-8">

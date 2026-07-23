@@ -1,11 +1,11 @@
-import React, { useRef } from 'react';
-import { toast } from 'sonner';
-import { Plus, X, Image, Video } from 'lucide-react';
+import React, { useRef } from "react";
+import { toast } from "sonner";
+import { Plus, X, Image, Video } from "lucide-react";
 
 export interface GalleryItem {
   file?: File;
   preview: string;
-  media_type: 'image' | 'video';
+  media_type: "image" | "video";
   media_url?: string;
 }
 
@@ -14,41 +14,52 @@ interface EventGalleryUploadProps {
   onChange: (items: GalleryItem[]) => void;
 }
 
-export const EventGalleryUpload: React.FC<EventGalleryUploadProps> = ({ items, onChange }) => {
+export const EventGalleryUpload: React.FC<EventGalleryUploadProps> = ({
+  items,
+  onChange,
+}) => {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    
+
     files.forEach((file) => {
-      const isImage = file.type.startsWith('image/');
-      const isVideo = file.type.startsWith('video/');
-      
-      if (!isImage && !isVideo) {
-        toast.error('Please upload images (JPG, PNG, WebP) or videos (MP4, WebM)');
+      const isImage = file.type.startsWith("image/");
+      // const isVideo = file.type.startsWith('video/');
+
+      // if (!isImage && !isVideo) {
+      //   toast.error('Please upload images (JPG, PNG, WebP) or videos (MP4, WebM)');
+      //   return;
+      // }
+      if (!isImage) {
+        toast.error("Only image files are allowed.");
         return;
       }
       if (file.size > 20 * 1024 * 1024) {
-        toast.error('File must be less than 20MB');
+        toast.error("File must be less than 20MB");
         return;
       }
       if (items.length >= 10) {
-        toast.error('Maximum 10 gallery items');
+        toast.error("Maximum 10 gallery items");
         return;
       }
 
       const reader = new FileReader();
       reader.onloadend = () => {
-        onChange([...items, {
-          file,
-          preview: reader.result as string,
-          media_type: isVideo ? 'video' : 'image',
-        }]);
+        onChange([
+          ...items,
+          {
+            file,
+            preview: reader.result as string,
+            // media_type: isVideo ? 'video' : 'image',
+            media_type: "image",
+          },
+        ]);
       };
       reader.readAsDataURL(file);
     });
 
-    if (e.target) e.target.value = '';
+    if (e.target) e.target.value = "";
   };
 
   const removeItem = (index: number) => {
@@ -63,19 +74,30 @@ export const EventGalleryUpload: React.FC<EventGalleryUploadProps> = ({ items, o
           GALLERY <span className="text-gray-400">(Optional)</span>
         </h3>
       </div>
+      {/* <p className="text-[11px] text-gray-500">
+        Add up to 10 images or videos. Images: 1080 × 1080px recommended.
+        Videos: MP4/WebM, max 20MB.
+      </p> */}
       <p className="text-[11px] text-gray-500">
-        Add up to 10 images or videos. Images: 1080 × 1080px recommended. Videos: MP4/WebM, max 20MB.
+        Add up to 10 images. Recommended size: 1080 × 1080px. Max 20MB each.
       </p>
 
       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
         {items.map((item, index) => (
-          <div key={index} className="relative aspect-square border border-black overflow-hidden group">
-            {item.media_type === 'video' ? (
+          <div
+            key={index}
+            className="relative aspect-square border border-black overflow-hidden group"
+          >
+            {item.media_type === "video" ? (
               <div className="w-full h-full bg-[#1A1A1A] flex items-center justify-center">
                 <Video className="w-6 h-6 text-white" />
               </div>
             ) : (
-              <img src={item.preview || item.media_url} alt="" className="w-full h-full object-cover" />
+              <img
+                src={item.preview || item.media_url}
+                alt=""
+                className="w-full h-full object-cover"
+              />
             )}
             <button
               type="button"
@@ -91,10 +113,18 @@ export const EventGalleryUpload: React.FC<EventGalleryUploadProps> = ({ items, o
           <label className="aspect-square border border-dashed border-black bg-[#F5F5F5] flex flex-col items-center justify-center cursor-pointer hover:bg-[#ECECEC] transition-colors">
             <Plus className="w-5 h-5 mb-1" />
             <span className="text-[10px] uppercase">Add</span>
-            <input
+            {/* <input
               ref={fileRef}
               type="file"
               accept="image/jpeg,image/png,image/webp,video/mp4,video/webm"
+              multiple
+              className="hidden"
+              onChange={handleUpload}
+            /> */}
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
               multiple
               className="hidden"
               onChange={handleUpload}

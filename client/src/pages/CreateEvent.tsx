@@ -42,6 +42,7 @@ import {
 } from "@/components/ui/select";
 import { MapPin } from "lucide-react";
 import { EventCreatedModal } from "@/components/EventCreatedModal";
+import { VenueSeatingMapEditorCreateEvent } from "@/components/VenueSeatingMapEditorCreateEvent";
 
 const eventSchema = z.object({
   eventName: z.string().trim().min(1, "Event name is required").max(200),
@@ -570,14 +571,14 @@ const CreateEvent = () => {
                 onChange={setGalleryItems}
               />
 
-              {/* Venue Seating Map (Simplified) */}
-              <VenueSeatingMapEditor
-                mapImagePreview={venueMapPreview}
-                onMapImageChange={(file, preview) => {
-                  setVenueMapFile(file);
-                  setVenueMapPreview(preview);
-                }}
-              />
+              {/* Venue Seating Map */}
+<VenueSeatingMapEditorCreateEvent
+  mapImagePreview={venueMapPreview}
+  onMapImageChange={(file, preview) => {
+    setVenueMapFile(file);
+    setVenueMapPreview(preview);
+  }}
+/>
 
               {/* Submit Buttons */}
               <div className="flex gap-3 mt-4 md:mt-8">

@@ -36,7 +36,6 @@ export const VenueSeatingMapDisplay: React.FC<VenueSeatingMapDisplayProps> = ({
   const [mapImageUrl, setMapImageUrl] = useState<string | null>(null);
   const [sections, setSections] = useState<VenueSection[]>([]);
   const [loading, setLoading] = useState(true);
-  const geo = useGeoLocation();
 
   useEffect(() => {
     const fetchData = async () => {
