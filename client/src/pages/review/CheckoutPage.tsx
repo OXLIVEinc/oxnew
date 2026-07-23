@@ -36,6 +36,7 @@ export default function CheckoutPage() {
     fetchCheckout(orderId)
       .then(({ order, event }) => {
         setOrder(order);
+        console.log(order)
         setEvent(event);
         const initial =
           order.items && order.items.length === order.quantity

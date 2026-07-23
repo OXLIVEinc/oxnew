@@ -23,7 +23,8 @@ export async function listGuests(
   const regs = await db.select().from(eventRegistrations).where(and(...conditions));
   if (regs.length === 0) return [];
 
-  const userIds = [...new Set(regs.map((r) => r.userId))];
+ const userIds = regs.flatMap((r) => (r.userId ? [r.userId] : []));
+
   const [profileRows, ticketRows, tierRows] = await Promise.all([
     db.select().from(profiles).where(inArray(profiles.id, userIds)),
     db.select().from(tickets).where(and(eq(tickets.eventId, eventId), inArray(tickets.userId, userIds))),
@@ -36,6 +37,9 @@ export async function listGuests(
   const guestList: any[] = [];
 
   ticketRows.forEach((t) => {
+    if (!t.userId) {
+  return; // or continue in a for...of loop
+}
     const profile = profileMap.get(t.userId);
     const reg = regs.find((r) => r.userId === t.userId);
     guestList.push({
@@ -54,6 +58,9 @@ export async function listGuests(
   });
 
   regs.forEach((r) => {
+    if (!r.userId) {
+  return; // or continue in a for...of loop
+}
     if (!ticketRows.some((t) => t.userId === r.userId)) {
       const profile = profileMap.get(r.userId);
       guestList.push({

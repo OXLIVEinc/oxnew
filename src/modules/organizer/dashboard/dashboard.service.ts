@@ -102,7 +102,9 @@ export async function getEventAnalytics(
     return { totalGuests: 0, checkedIn: 0, revenue, genderCounts: {}, locationCounts: {}, registrationsOverTime: [], tierBreakdown };
   }
 
-  const userIds = [...new Set(regs.map((r) => r.userId))];
+const userIds = [
+  ...new Set(regs.flatMap((r) => (r.userId ? [r.userId] : []))),
+];
   const [profileRows, ticketRows] = await Promise.all([
     db
       .select({ id: profiles.id, gender: profiles.gender, locationCountry: profiles.locationCountry })
