@@ -11,15 +11,22 @@ declare module "qrcode" {
   export default QRCode;
 }
 declare module "sharp" {
-  export interface OverlayOptions { input: Buffer; left: number; top: number; }
+  export interface OverlayOptions {
+    input: Buffer | string;
+    left?: number;
+    top?: number;
+  }
+
   interface SharpInstance {
     resize(...args: any[]): SharpInstance;
     png(opts?: any): SharpInstance;
-    toBuffer(): Promise<Buffer>;
-    composite(opts: OverlayOptions[]): SharpInstance;
     blur(n?: number): SharpInstance;
+    composite(opts: OverlayOptions[]): SharpInstance;
+    toBuffer(): Promise<Buffer>;
   }
-  function sharp(input: Buffer): SharpInstance;
+
+  function sharp(input: Buffer | string): SharpInstance;
+
   export default sharp;
 }
 declare module "jsonwebtoken" {

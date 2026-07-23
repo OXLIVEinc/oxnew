@@ -98,7 +98,6 @@ export function TicketOrderEmail({ order }: Props) {
 
               <Text>Check-in Code: {ticket.checkInCode}</Text>
 
-              <Text>QR Code</Text>
 
               <img
                 src={ticket.qrCode}
