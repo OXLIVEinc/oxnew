@@ -6,7 +6,6 @@ import { relations } from "drizzle-orm";
 export type OrderItem = {
   attendeeName: string;
   attendeeEmail: string;
-  /** Web orders can mix tiers per attendee; WhatsApp orders omit this and fall back to the order's single tierId. */
   tierId?: string;
   unitPrice?: number;
 };
@@ -248,17 +247,30 @@ export const ticketTiers = pgTable("ticket_tiers", {
 export const ticketOrders = pgTable("ticket_orders", {
   id: uuid("id").defaultRandom().primaryKey(),
   reference: text("reference").notNull(),
+
   // Column stays `profile_id` (a profile IS the user), but the field is
   // named `userId` in code for clarity/consistency everywhere it's used.
-  userId: uuid("user_id").notNull().references(() => profiles.id),
+  userId: uuid("user_id")
+    .references(() => profiles.id),
+
   phone: text("phone").notNull(),
-  eventId: uuid("event_id").notNull().references(() => events.id),
-  tierId: uuid("ticket_tier_id").notNull().references(() => ticketTiers.id),
+  eventId: uuid("event_id")
+    .notNull()
+    .references(() => events.id),
+  tierId: uuid("ticket_tier_id")
+    .notNull()
+    .references(() => ticketTiers.id),
+
+  // Email used for guest purchases (optional)
+ guestName: text("guest_name"),
+guestEmail: text("guest_email"),
 
   quantity: integer("quantity").notNull(),
   unitPrice: numeric("unit_price", { precision: 10, scale: 2 }).notNull(),
   subtotal: numeric("subtotal", { precision: 10, scale: 2 }).notNull(),
-  serviceFee: numeric("service_fee", { precision: 10, scale: 2 }).notNull().default("0"),
+  serviceFee: numeric("service_fee", { precision: 10, scale: 2 })
+    .notNull()
+    .default("0"),
   amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
   currency: text("currency").notNull().default("NGN"),
 
@@ -272,7 +284,6 @@ export const ticketOrders = pgTable("ticket_orders", {
   accessCode: text("access_code"),
   authorizationUrl: text("authorization_url"),
 
-  // Post-purchase engagement tracking, so delayed jobs never double-send.
   hotelUpsellSentAt: timestamp("hotel_upsell_sent_at", { withTimezone: true }),
   referralPushSentAt: timestamp("referral_push_sent_at", { withTimezone: true }),
   ticketsDeliveredAt: timestamp("tickets_delivered_at", { withTimezone: true }),
@@ -283,9 +294,15 @@ export const ticketOrders = pgTable("ticket_orders", {
   cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
   expiredAt: timestamp("expired_at", { withTimezone: true }),
 
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-}, (t) => [uniqueIndex("ticket_orders_reference_key").on(t.reference)]);
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+}, (t) => [
+  uniqueIndex("ticket_orders_reference_key").on(t.reference),
+]);
 
 export const tickets = pgTable("tickets", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -297,7 +314,8 @@ export const tickets = pgTable("tickets", {
   // `ownerPhone` text column — the owner's phone is normalized onto
   // `profiles.phone` and should be read from there (via this FK) so it
   // stays in sync if the user later updates it.
-  userId: uuid("user_id").notNull().references(() => profiles.id),
+  userId: uuid("user_id")
+  .references(() => profiles.id),
   attendeeName: text("attendee_name").notNull(),
   attendeeEmail: text("attendee_email"),
   attendeePhone: text("attendee_phone"),
@@ -320,13 +338,31 @@ export const eventRegistrations = pgTable(
   "event_registrations",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    userId: uuid("user_id").notNull().references(() => profiles.id),
-    eventId: uuid("event_id").notNull().references(() => events.id),
-    registeredAt: timestamp("registered_at", { withTimezone: true }).notNull().defaultNow(),
+
+    userId: uuid("user_id").references(() => profiles.id),
+
+    guestName: text("guest_name"),
+    guestEmail: text("guest_email"),
+    guestPhone: text("guest_phone"),
+
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => events.id),
+
+    registeredAt: timestamp("registered_at", {
+      withTimezone: true,
+    })
+      .notNull()
+      .defaultNow(),
+
     ticketTierId: uuid("ticket_tier_id").references(() => ticketTiers.id),
   },
   (t) => [
-    uniqueIndex("event_registrations_user_id_event_id_key").on(t.userId, t.eventId),
+    uniqueIndex("event_registrations_user_id_event_id_key")
+      .on(t.userId, t.eventId),
+
+    uniqueIndex("event_registrations_guest_email_event_id_key")
+      .on(t.guestEmail, t.eventId),
   ]
 );
 
@@ -536,8 +572,7 @@ export const processedPayments = pgTable(
 
     // Which user paid
     userId: uuid("user_id")
-      .notNull()
-      .references(() => profiles.id),
+  .references(() => profiles.id),
 
     // Which order was fulfilled
     ticketOrderId: uuid("ticket_order_id")

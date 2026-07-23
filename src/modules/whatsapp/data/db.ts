@@ -321,8 +321,8 @@ export async function createTicketOrder(input: CreateTicketOrderInput): Promise<
       subtotal: String(subtotal),
       amount: String(amount),
       status: "pending",
-orderSource: "whatsapp",
-expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+      orderSource: "whatsapp",
+      expiresAt: new Date(Date.now() + 30 * 60 * 1000),
     })
     .returning();
 
@@ -358,8 +358,21 @@ export async function submitOrderItems(orderId: string, items: OrderItem[]): Pro
     throw new Error(`Expected ${order.quantity} attendee(s), got ${items?.length ?? 0}`);
   }
 
-  const profileRows = await db.select().from(schema.profiles).where(eq(schema.profiles.id, order.userId)).limit(1);
-  const buyerEmail = items[0]?.attendeeEmail || profileRows[0]?.email || `${order.phone}@guest.ox.app`;
+  let buyerEmail: string | null = items[0]?.attendeeEmail;
+
+  if (!buyerEmail && order.userId) {
+    const [profile] = await db
+      .select()
+      .from(schema.profiles)
+      .where(eq(schema.profiles.id, order.userId))
+      .limit(1);
+
+    buyerEmail = profile?.email;
+  }
+
+  buyerEmail ??=
+    order.guestEmail ??
+    `${order.phone}@guest.ox.app`;
 
   const payment = await initializeTransaction({
     email: buyerEmail,
@@ -404,7 +417,6 @@ export async function submitOrderItemsFree(orderId: string, items: OrderItem[]):
     .set({ items, updatedAt: new Date() })
     .where(eq(schema.ticketOrders.id, orderId))
     .returning();
-
   return updated;
 }
 
@@ -586,11 +598,6 @@ export interface CreateHotelOrderInput {
   pricePerNight: number;
 }
 
-// Fire-and-forget hooks so the Hotel Partner Dashboard reflects a booking
-// change in realtime no matter which channel (WhatsApp bot or dashboard)
-// caused it. Imported lazily to avoid any load-order coupling with the
-// rest of the bot's data layer; a notification failure here must never
-// break the booking flow that triggered it.
 async function publishHotelOrderEvent(
   kind: "created" | "paid" | "confirmed" | "declined" | "cancelled",
   order: HotelOrderRow
@@ -613,7 +620,7 @@ export async function createHotelOrder(input: CreateHotelOrderInput): Promise<Ho
   const subtotal = input.pricePerNight * input.nights;
   const serviceFee = subtotal * serviceFeeRate;
   const amount = subtotal + serviceFee;
-  const reference =  generateReference("OX-HTL")
+  const reference = generateReference("OX-HTL")
 
 
 
@@ -1066,7 +1073,7 @@ export interface RecordProcessedPaymentInput {
   provider?: string;
   reference: string;
   paymentType: "ticket" | "hotel";
-  userId: string;
+  userId?: string | null;
   ticketOrderId?: string;
   hotelOrderId?: string;
   amount: number;
@@ -1074,14 +1081,17 @@ export interface RecordProcessedPaymentInput {
   metadata?: unknown;
 }
 
-export async function recordProcessedPaymentIfNew(input: RecordProcessedPaymentInput): Promise<boolean> {
+
+export async function recordProcessedPaymentIfNew(
+  input: RecordProcessedPaymentInput
+): Promise<boolean> {
   const rows = await db
     .insert(schema.processedPayments)
     .values({
       provider: input.provider ?? "paystack",
       reference: input.reference,
       paymentType: input.paymentType,
-      userId: input.userId,
+      userId: input.userId ?? null,
       ticketOrderId: input.ticketOrderId,
       hotelOrderId: input.hotelOrderId,
       amount: String(input.amount),
@@ -1089,7 +1099,9 @@ export async function recordProcessedPaymentIfNew(input: RecordProcessedPaymentI
       metadata: input.metadata,
     })
     .onConflictDoNothing()
-    .returning({ id: schema.processedPayments.id });
+    .returning({
+      id: schema.processedPayments.id,
+    });
 
   return rows.length > 0;
 }
@@ -1269,8 +1281,7 @@ export async function createTicketsForOrder(order: TicketOrderRow): Promise<Tick
   const event = await getEventById(order.eventId);
   if (!event) throw new Error("Event not found for order");
 
-  const buyerProfileId = order.userId;
-
+  const buyerProfileId = order?.userId;
 
   const tierIds = [...new Set(items.map((i) => i.tierId ?? order.tierId))];
   const tierRows = await db.select().from(schema.ticketTiers).where(inArray(schema.ticketTiers.id, tierIds));
@@ -1289,7 +1300,7 @@ export async function createTicketsForOrder(order: TicketOrderRow): Promise<Tick
         orderId: order.id,
         eventId: order.eventId,
         tierId,
-        userId: buyerProfileId,
+        userId: buyerProfileId ?? null,
         attendeeName: item.attendeeName,
         attendeeEmail: item.attendeeEmail,
         qrCode: "",
@@ -1328,14 +1339,54 @@ export async function createTicketsForOrder(order: TicketOrderRow): Promise<Tick
       .where(eq(schema.ticketTiers.id, tierId));
   }
 
-  await db
-    .insert(schema.eventRegistrations)
-    .values({
-      userId: buyerProfileId,
-      eventId: order.eventId,
-      ticketTierId: order.tierId,
-    })
-    .onConflictDoNothing();
+  if (buyerProfileId) {
+    await db
+      .insert(schema.eventRegistrations)
+      .values({
+        userId: buyerProfileId,
+        eventId: order.eventId,
+        ticketTierId: order.tierId,
+      })
+      .onConflictDoNothing({
+        target: [
+          schema.eventRegistrations.userId,
+          schema.eventRegistrations.eventId,
+        ],
+      });
+  } else {
+    await db
+      .insert(schema.eventRegistrations)
+      .values({
+        guestName: order.guestName,
+        guestEmail: order.guestEmail,
+        guestPhone: order.phone ?? null,
+        eventId: order.eventId,
+        ticketTierId: order.tierId,
+      })
+      .onConflictDoNothing({
+        target: [
+          schema.eventRegistrations.guestEmail,
+          schema.eventRegistrations.eventId,
+        ],
+      });
+  }
+
+
 
   return tickets;
+}
+
+
+
+export async function getTicketOrderWithDetails(orderId: string) {
+  return db.query.ticketOrders.findFirst({
+    where: eq(schema.ticketOrders.id, orderId),
+
+    with: {
+      event: true,
+      tickets: true,
+      tier: true,
+      user: true,
+    },
+  });
 }

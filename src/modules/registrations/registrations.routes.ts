@@ -4,7 +4,10 @@ import * as controller from "./registrations.controller";
 
 const router = Router();
 
-router.post("/", requireAuth, controller.register);
+// Authenticated customer order
 router.post("/order", requireAuth, controller.createOrder);
+
+// Anonymous guest order (no authentication)
+router.post("/guest-order", controller.createGuestOrder);
 
 export default router;

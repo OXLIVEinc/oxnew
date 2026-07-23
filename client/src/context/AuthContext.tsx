@@ -40,6 +40,7 @@ interface AuthContextValue {
     phone?: string;
     whatsapp?: string;
   }) => Promise<void>;
+   resetPassword: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -291,6 +292,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [toast, logError]);
 
+
+    const resetPassword = async (email: string) => {
+  setLoading(true);
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) throw error;
+
+    toast({
+      title: 'Password reset email sent!',
+      description: 'Check your email for instructions.',
+    });
+  } catch (err: any) {
+    toast({ title: 'Error', description: err.message, variant: 'destructive' });
+  } finally {
+    setLoading(false);
+  }
+};
+
   const refresh = useCallback(async () => {
     if (!authUser) return;
     try {
@@ -318,6 +339,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     refresh,
     signIn,
     signUp,
+    resetPassword 
   };
 
   return (

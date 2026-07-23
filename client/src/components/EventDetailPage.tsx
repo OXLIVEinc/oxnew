@@ -52,7 +52,6 @@ export const EventDetailPage: React.FC = () => {
   const { isHotelPartner } = useAuth();
   const asideRef = useRef<HTMLDivElement>(null);
   const { data: event, isLoading: loading, isError, refetch } = useEvent(id);
-  console.log(event)
 
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
@@ -203,7 +202,7 @@ export const EventDetailPage: React.FC = () => {
               <EventMeta date={schedule.dateLabel} time={schedule.timeLabel} />
               <EventHeader title={event.title} creatorUserId={event.createdBy} />
               <EventTagsDisplay ageGroup={event.ageGroup} genre={event.genre} tags={event.tags} />
-              <EventLikeShare eventCode={event.eventCode} eventId={event.id} eventTitle={event.title} onAuthRequired={() => setIsAuthOpen(true)} />
+              <EventLikeShare eventCode={event.eventCode} eventId={event.id} eventTitle={event.title}  />
             </div>
 
             <EventDescription description={event.description ?? ''} />
@@ -280,7 +279,6 @@ export const EventDetailPage: React.FC = () => {
                 isPaid={event.isPaid}
                 onRegister={() => { checkRegistration(); refetch(); }}
                 isRegistered={isRegistered}
-                onAuthRequired={() => setIsAuthOpen(true)}
                 targetDate={targetDate}
                 ticketTiers={ticketTiers}
                 selectedTierId={selectedTierId}

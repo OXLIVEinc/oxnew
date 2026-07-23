@@ -15,6 +15,14 @@ export interface CreateOrderInput {
   selections: OrderSelection[];
 }
 
+export interface CreateGuestOrderInput {
+  eventId: string;
+  guestName: string;
+  guestEmail: string;
+  guestPhone?: string;
+  selections: OrderSelection[];
+}
+
 export interface CreatedOrder {
   id: string;
   reference: string;
@@ -26,6 +34,21 @@ export interface CreatedOrder {
 }
 
 export async function createEventOrder(input: CreateOrderInput) {
-  const { data } = await api.post<{ order: CreatedOrder }>("/registrations/order", input);
+  const { data } = await api.post<{ order: CreatedOrder }>(
+    "/registrations/order",
+    input
+  );
+
+  return data.order;
+}
+
+export async function createGuestEventOrder(
+  input: CreateGuestOrderInput
+) {
+  const { data } = await api.post<{ order: CreatedOrder }>(
+    "/registrations/guest-order",
+    input
+  );
+
   return data.order;
 }

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { createEventOrder } from '@/lib/api/registrations';
+import { createEventOrder ,createGuestEventOrder} from '@/lib/api/registrations';
 import { getApiErrorMessage } from '@/lib/api/http';
 import { Plus, X } from 'lucide-react';
 
@@ -28,7 +28,6 @@ interface EventRegistrationProps {
   onRegister: () => void;
   isRegistered: boolean;
   className?: string;
-  onAuthRequired?: () => void;
   targetDate?: Date;
   ticketTiers?: TicketTier[];
   selectedTierId?: string | null;
@@ -39,7 +38,6 @@ export const EventRegistration: React.FC<EventRegistrationProps> = ({
   onRegister,
   isRegistered: initialIsRegistered,
   className = "",
-  onAuthRequired,
   targetDate,
   ticketTiers = [],
   selectedTierId,
@@ -51,6 +49,10 @@ export const EventRegistration: React.FC<EventRegistrationProps> = ({
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [attendees, setAttendees] = useState<AttendeeSelection[]>([]);
   const { toast } = useToast();
+
+  const [guestName, setGuestName] = useState("");
+const [guestEmail, setGuestEmail] = useState("");
+const [guestPhone, setGuestPhone] = useState("");
 
   useEffect(() => {
     if (!user?.id) { setIsRegistered(false); return; }
@@ -87,11 +89,6 @@ export const EventRegistration: React.FC<EventRegistrationProps> = ({
       toast({ title: 'Event has ended', description: 'You cannot register for past events', variant: 'destructive' });
       return;
     }
-    if (!user) {
-      if (onAuthRequired) onAuthRequired();
-      else toast({ title: 'Sign in required', description: 'Please sign in to register', variant: 'destructive' });
-      return;
-    }
 
     const tier = defaultTier();
     setAttendees([{ tierId: tier?.id || '', tierName: tier?.name || 'General' }]);
@@ -123,18 +120,31 @@ export const EventRegistration: React.FC<EventRegistrationProps> = ({
   }, 0);
 
   const handleBookTickets = async () => {
-    if (!user) return;
     if (attendees.some((a) => !a.tierId)) {
       toast({ title: 'Select a ticket type', description: 'Please choose a ticket for every attendee', variant: 'destructive' });
       return;
     }
+    console.log('heheh')
 
     setLoading(true);
     try {
-      const order = await createEventOrder({
-        eventId,
-        selections: attendees.map((a) => ({ tierId: a.tierId })),
-      });
+     
+const order = user
+  ? await createEventOrder({
+      eventId,
+      selections: attendees.map((a) => ({
+        tierId: a.tierId,
+      })),
+    })
+  : await createGuestEventOrder({
+      eventId,
+      guestName,
+      guestEmail,
+      guestPhone,
+      selections: attendees.map((a) => ({
+        tierId: a.tierId,
+      })),
+    });
       setShowBookingModal(false);
       onRegister();
       navigate(`/checkout/${order.id}`);
@@ -226,7 +236,59 @@ export const EventRegistration: React.FC<EventRegistrationProps> = ({
               >
                 <Plus size={16} /> Add Another Ticket ({attendees.length}/20)
               </button>
+            {!user && (
+  <div className="border border-border rounded-lg p-4 space-y-4">
+    <div>
+      <h3 className="font-medium">Recipient Details</h3>
+      <p className="text-sm text-muted-foreground mt-1">
+        Your tickets and receipt will be sent to these details.
+      </p>
+    </div>
+
+    <div className="space-y-3">
+      <div>
+        <label className="text-sm font-medium mb-1 block">
+          Full Name
+        </label>
+        <input
+          type="text"
+          value={guestName}
+          onChange={(e) => setGuestName(e.target.value)}
+          placeholder="John Doe"
+          className="w-full rounded-md border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(300,100%,73%)]"
+        />
+      </div>
+
+      <div>
+        <label className="text-sm font-medium mb-1 block">
+          Email Address
+        </label>
+        <input
+          type="email"
+          value={guestEmail}
+          onChange={(e) => setGuestEmail(e.target.value)}
+          placeholder="john@example.com"
+          className="w-full rounded-md border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(300,100%,73%)]"
+        />
+      </div>
+
+      <div>
+        <label className="text-sm font-medium mb-1 block">
+          Phone Number
+        </label>
+        <input
+          type="tel"
+          value={guestPhone}
+          onChange={(e) => setGuestPhone(e.target.value)}
+          placeholder="+2348012345678"
+          className="w-full rounded-md border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(300,100%,73%)]"
+        />
+      </div>
+    </div>
+  </div>
+)}
             </div>
+
 
             <div className="sticky bottom-0 bg-background border-t border-border px-6 py-4 flex items-center justify-between rounded-b-xl">
               <div>
@@ -249,6 +311,8 @@ export const EventRegistration: React.FC<EventRegistrationProps> = ({
               </button>
             </div>
           </div>
+
+
         </div>
       )}
     </>

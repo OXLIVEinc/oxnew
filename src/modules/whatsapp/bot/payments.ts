@@ -8,14 +8,9 @@ import {
   enqueuePreEventReminder,
 } from '../queues/purchase';
 import { handleTicketDelivery } from '../queues/ticket_confirmation';
+import { sendTicketOrderEmail } from '../services/sendTicketOrderEmail'
 
-/**
- * Called from the Paystack webhook. Independent of the buyer's current
- * WhatsApp session — a payment can confirm long after they've closed the
- * chat. `reference` is checked against `processed_payments` first so a
- * webhook retry (Paystack resends on any non-2xx) can never double-fulfil
- * an order.
- */
+
 export async function completeTicketOrderPayment(
   reference: string,
   amountKobo?: number
@@ -30,7 +25,7 @@ export async function completeTicketOrderPayment(
   const isNewPayment = await db.recordProcessedPaymentIfNew({
     reference,
     paymentType: "ticket",
-    userId: order.userId,
+    userId: order.userId ?? null,
     ticketOrderId: order.id,
     amount: amountKobo != null ? amountKobo / 100 : Number(order.amount),
   });
@@ -46,6 +41,7 @@ export async function completeTicketOrderPayment(
 
   // Web orders stop here.
   if (order.orderSource === "web") {
+    await sendTicketOrderEmail(order.id);
     return;
   }
 
@@ -85,6 +81,7 @@ export async function completeFreeTicketOrder(reference: string): Promise<void> 
 
   // Web orders stop here.
   if (order.orderSource === 'web') {
+    await sendTicketOrderEmail(order.id);
     return;
   }
 
@@ -125,18 +122,15 @@ export async function completeHotelOrderPayment(reference: string, amountKobo?: 
   });
   if (!isNewPayment) return;
 
-  // Payment clears the order into "paid" — it isn't "confirmed" until the
-  // hotel itself accepts the request (see hotelFlow.notifyHotelOfBooking /
-  // db.confirmHotelOrder / db.declineHotelOrder, wired up in router.ts).
   if (order.status !== 'paid' && order.status !== 'confirmed' && order.status !== 'declined' && order.status !== 'completed') {
     const paid = await db.markHotelOrderPaid(order.id);
     await sendMessage(
       paid.phone,
       isFree
         ? `Your booking request (Ref: ${paid.reference}) has been registered.\n\n` +
-          `We've sent it to the hotel — you'll get a confirmation here shortly (within 30 minutes).`
+        `We've sent it to the hotel — you'll get a confirmation here shortly (within 30 minutes).`
         : `Payment received for Ref: ${paid.reference}.\n\n` +
-          `We've sent your request to the hotel — you'll get a confirmation here shortly (within 30 minutes).`
+        `We've sent your request to the hotel — you'll get a confirmation here shortly (within 30 minutes).`
     );
     await hotelFlow.notifyHotelOfBooking(paid);
   }
