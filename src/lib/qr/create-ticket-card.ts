@@ -1,6 +1,5 @@
 import sharp, { OverlayOptions } from "sharp";
 import { formatEventDate, formatEventTimeRangeCard } from "@/modules/whatsapp/lib/datetime";
-import path from "path";
 
 interface TicketCardOptions {
   eventName: string;
@@ -38,18 +37,6 @@ export async function createTicketCard({
   brand = "OX",
   banner,
 }: TicketCardOptions): Promise<Buffer> {
-  // -----------------------------
-  // Load Logo
-  // -----------------------------
-  const logoPath = path.join(process.cwd(), "client", "public", "ox-logo.jpg");
-  let logoBuffer: Buffer | null = null;
-
-  try {
-    logoBuffer = await sharp(logoPath).resize({ height: 28, fit: "contain" }).png().toBuffer();
-  } catch (error) {
-    console.error("[create-ticket-card] failed to load ox-logo image:", error);
-  }
-
   // -----------------------------
   // Load Banner
   // -----------------------------
@@ -115,7 +102,7 @@ export async function createTicketCard({
       <text x="50%" y="955" text-anchor="middle" class="label">Scan QR Code for Entry</text>
       
       <!-- Footer Text -->
-      <text x="${logoBuffer ? "370" : "50%"}" y="1145" text-anchor="${logoBuffer ? "end" : "middle"}" class="subtitle">
+      <text x="50%" y="1145" text-anchor="middle" class="subtitle">
         Powered by ${escapeXml(brand)}
       </text>
     </svg>
@@ -144,15 +131,6 @@ export async function createTicketCard({
       ),
       left: 0,
       top: 0,
-    });
-  }
-
-  // Logo Overlay (Placed beside "Powered by OX")
-  if (logoBuffer) {
-    composites.push({
-      input: logoBuffer,
-      left: 385,
-      top: 1124,
     });
   }
 
