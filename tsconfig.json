@@ -25,8 +25,9 @@
   },
   "include": [
     "src/**/*.ts",
-    "shared/**/*.ts"
-, "src/modules/whatsapp/emails/supportRequestEmail.tsx", "src/modules/whatsapp/services/supportEmail.ts", "sip.ts"  ],
+    "shared/**/*.ts",
+     "src/**/*.tsx",
+"src/modules/whatsapp/emails/supportRequestEmail.tsx", "src/modules/whatsapp/services/supportEmail.ts", "sip.ts"  ],
   "exclude": [
     "node_modules",
     "dist"

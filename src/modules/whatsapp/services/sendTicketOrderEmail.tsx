@@ -1,6 +1,6 @@
 import React from "react";
 import { resend } from "../lib/resend";
-import { TicketOrderEmail } from "../emails/ticketOrderEmail";
+import { TicketOrderEmail } from "../emails/TicketOrderEmail";
 import * as db from "../data/db";
 
 export async function sendTicketOrderEmail(orderId: string) {
