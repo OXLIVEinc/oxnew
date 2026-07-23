@@ -1,20 +1,15 @@
 import { eq } from "drizzle-orm";
-
-import { db } from "@/config/database";
-import { tickets } from "@shared/schema";
-
+import { db } from "../../db/client";
+import { tickets } from "../../../shared/schema";
 import { verifyQrPayload } from "./verify-qr";
 
-
+/**
+ * Door-scan validation: verifies the JWT signature, loads the ticket, and
+ * confirms it hasn't been transferred away or already checked in.
+ */
 export async function validateTicketQr(token: string) {
-  //
-  // Verify JWT signature
-  //
   const payload = verifyQrPayload(token);
 
-  //
-  // Load ticket
-  //
   const [ticket] = await db
     .select()
     .from(tickets)
@@ -25,22 +20,17 @@ export async function validateTicketQr(token: string) {
     throw new Error("TICKET_NOT_FOUND");
   }
 
-  //
-  // Was this QR invalidated by a transfer?
-  //
   if (ticket.checkInCode !== payload.checkInCode) {
     throw new Error("INVALID_QR");
   }
 
-  //
-  // Already used?
-  //
+  if (ticket.status === "transferred") {
+    throw new Error("TICKET_TRANSFERRED");
+  }
+
   if (ticket.checkedIn) {
     throw new Error("TICKET_ALREADY_USED");
   }
 
-  return {
-    ticket,
-    payload,
-  };
+  return { ticket, payload };
 }

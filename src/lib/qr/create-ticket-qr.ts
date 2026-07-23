@@ -1,63 +1,65 @@
-import { generateCheckInCode } from "@/utils/helpers";
+import { generateCheckInCode } from "../../modules/whatsapp/lib/ids";
 import { signQrPayload } from "./sign-qr-payload";
 import { generateQr } from "./generate-qr";
 import { uploadQr } from "./upload-qr";
 import { createTicketCard } from "./create-ticket-card";
 
-type Params = {
+
+interface CreateTicketQrParams {
   ticketId: string;
   eventId: string;
-
-  buyerName: string;
+  attendeeName: string;
   ticketTier: string;
-
   eventName: string;
-  eventDate: string;
-  venue: string;
-  brand?:string;
-  banner:string,
-};
+  eventStartsAt: Date | string;
+  eventEndsAt?: Date | string | null;
+  address: string;
+  brand?: string;
+  banner?: string;
+}
 
+/**
+ * Builds everything needed for one ticket's delivery: a fresh check-in
+ * code, a signed JWT payload embedded in the QR image, a branded ticket
+ * card (QR + event details), and the public URL it was uploaded to.
+ */
 export async function createTicketQr({
   ticketId,
   eventId,
-  buyerName,
+  attendeeName,
   ticketTier,
   eventName,
-  eventDate,
-  venue,
+  eventStartsAt,
+  eventEndsAt,
+  address,
   brand,
   banner,
-}: Params) {
+}: CreateTicketQrParams): Promise<{ checkInCode: string; qrCode: string }> {
   const checkInCode = generateCheckInCode();
 
   const token = signQrPayload({
     ticketId,
     eventId,
-    buyerName,
+    attendeeName,
     ticketTier,
     checkInCode,
   });
 
   const qrBuffer = await generateQr(token);
 
-  // Build the beautiful ticket image
   const ticketBuffer = await createTicketCard({
-  eventName,
-  eventDate,
-  venue,
-  guest: buyerName,
-  tier: ticketTier,
-  qrBuffer,
-  brand,
-  banner
-});
+    eventName,
+    eventStartsAt,
+    eventEndsAt,
+    address,
+    guest: attendeeName,
+    tier: ticketTier,
+    qrBuffer,
+    brand,
+    banner,
+  });
 
-  // Upload the ticket image instead of the raw QR
   const qrCode = await uploadQr(ticketBuffer);
 
-  return {
-    checkInCode,
-    qrCode,
-  };
+  return { checkInCode, qrCode };
 }

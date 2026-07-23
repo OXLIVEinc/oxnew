@@ -1,21 +1,21 @@
 import jwt from "jsonwebtoken";
 
-const QR_SECRET = process.env.QR_SECRET!;
-
-if (!QR_SECRET) {
-  throw new Error("QR_SECRET is missing.");
-}
-
 export interface QrPayload {
   ticketId: string;
   eventId: string;
-  buyerName: string;
+  attendeeName: string;
   ticketTier: string;
   checkInCode: string;
 }
 
+function getSecret(): string {
+  const secret = process.env.QR_SECRET;
+  if (!secret) {
+    throw new Error("QR_SECRET is missing — set it in .env before generating ticket QR codes.");
+  }
+  return secret;
+}
+
 export function signQrPayload(payload: QrPayload): string {
-  return jwt.sign(payload, QR_SECRET, {
-    algorithm: "HS256",
-  });
+  return jwt.sign(payload, getSecret(), { algorithm: "HS256" });
 }

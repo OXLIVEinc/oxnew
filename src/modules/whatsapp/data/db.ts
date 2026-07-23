@@ -4,7 +4,7 @@ import * as schema from "../../../../shared/schema";
 import { OrderItem } from "../../../../shared/schema";
 import { initializeTransaction } from "../lib/paystack";
 import { nextTransferCode } from "../lib/ids";
-import { createTicketQr } from "../lib/qr/create-ticket-qr";
+import { createTicketQr } from "@/lib/qr/create-ticket-qr";
 import { distanceKm } from "../lib/geocode";
 import { sendMessage, sendImageMessage } from "../bot/messenger";
 import { HotelOrderWithDetails } from "../../../../shared/schema";
@@ -975,7 +975,7 @@ export async function claimTransfer(
   const { checkInCode, qrCode } = await createTicketQr({
     ticketId: original.id,
     eventId: original.eventId,
-    buyerName: fullName,
+    attendeeName: fullName,
     ticketTier: tier?.name ?? "General Admission",
     eventName: event?.title ?? "Event",
     eventStartsAt: event?.startsAt ?? new Date(),
@@ -1312,7 +1312,7 @@ export async function createTicketsForOrder(order: TicketOrderRow): Promise<Tick
     const { checkInCode, qrCode } = await createTicketQr({
       ticketId: placeholder.id,
       eventId: event.id,
-      buyerName: item.attendeeName,
+      attendeeName: item.attendeeName,
       ticketTier: tier?.name ?? "General Admission",
       eventName: event.title,
       eventStartsAt: event.startsAt,

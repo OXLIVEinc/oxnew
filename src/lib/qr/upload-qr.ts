@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { supabaseAdmin } from "@/supabase/admin";
+import { supabaseAdmin } from "../../supabase/admin";
 
 export async function uploadQr(
   qrBuffer: Buffer
