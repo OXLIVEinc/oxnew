@@ -1,13 +1,8 @@
-folder .github {
-  folder workflows {
-    file deploy-vercel.yml
-    file railway-deploy.yml
-  }
-}
 folder client {
   folder public {
     file favicon.svg
     file icons.svg
+    file ox-logo.jpg
   }
   folder src {
     folder assets {
@@ -75,8 +70,10 @@ folder client {
         file GuestListPanel.tsx
         file OrganizerTicketsTab.tsx
         file OverViewCards.tsx
+        file ProfileTab.tsx
         file ProiflePanel.tsx
         file QRScannerPanel.tsx
+        file Settings.tsx
         file SubscriptionPanel.tsx
       }
       folder review {
@@ -139,10 +136,12 @@ folder client {
       file AnimatedOxLogo.tsx
       file AuthLoading.tsx
       file AuthSheet.tsx
+      file CopyLinkDropdown.tsx
       file Countdown.module.css
       file Countdown.tsx
       file EventBannerUpload.tsx
       file EventCountdown.tsx
+      file EventCreatedModal.tsx
       file EventDescription.tsx
       file EventDetailPage.tsx
       file EventFooter.tsx
@@ -160,6 +159,8 @@ folder client {
       file EventTicketTiers.tsx
       file FeaturedStoriesCarousel.tsx
       file Hero.tsx
+      file LocationMapModal.tsx
+      file LocationSuggestion.tsx
       file Navbar.tsx
       file OrganizerProfileEditor.tsx
       file RotatingBadge.tsx
@@ -174,6 +175,7 @@ folder client {
       file ui.module.css
       file VenueSeatingMapDisplay.tsx
       file VenueSeatingMapEditor.tsx
+      file VenueSeatingMapEditorCreateEvent.tsx
     }
     folder context {
       file AuthContext.tsx
@@ -198,8 +200,9 @@ folder client {
       file use-mobile.tsx
       file use-toast.ts
       file useGeoLocation.ts
-      file useGooglePlacesAutocomplete.ts
       file useHotelRealtime.ts
+      file useLocationAutocomplete.ts
+      file useLocationSelector.tsx
       file useReview.ts
       file useSubscription.ts
       file useUserRole.ts
@@ -245,13 +248,16 @@ folder client {
         file HotelOrderPage.tsx
         file TransferClaimPage.tsx
       }
+      file About.tsx
       file Admin.tsx
       file Auth.tsx
       file CreateEvent.tsx
       file Dashboard.tsx
       file Discover.tsx
       file EditEvent.tsx
+      file ForgotPassword.tsx
       file GuestDashboard.tsx
+      file Help.tsx
       file HotelPartnerDashboard.tsx
       file Index.tsx
       file MyEvents.tsx
@@ -259,6 +265,7 @@ folder client {
       file OrganizerDashboard.tsx
       file OrganizerProfile.tsx
       file Pricing.tsx
+      file TicketOrderEmail.tsx
     }
     folder services {
       file reviewApi.ts
@@ -282,10 +289,11 @@ folder client {
   file components.json
   file eslint.config.js
   file index.html
+  file package-lock.json
   file package.json
   file postcss.config.js
   file README.md
-  file tailwind.config.js
+  file tailwind.config.ts
   file tsconfig.app.json
   file tsconfig.json
   file tsconfig.node.json
@@ -298,14 +306,39 @@ folder public {
   }
   folder tickets {
   }
+  file ox-logo.jpg
+}
+folder save {
+  folder .github {
+    folder workflows {
+      file deploy-vercel.yml
+      file railway-deploy.yml
+    }
+  }
+  folder qr {
+    file create-ticket-card.ts
+    file create-ticket-qr.ts
+    file generate-qr.ts
+    file sign-qr-payload.ts
+    file upload-qr.ts
+    file validate-ticket-qr.ts
+    file verify-qr.ts
+  }
 }
 folder shared {
   file schema.ts
 }
 folder src {
+  folder assets {
+  }
   folder config {
     file database.ts
     file env.ts
+  }
+  folder db {
+    file client.ts
+    file redis.ts
+    file seed.ts
   }
   folder lib {
     folder qr {
@@ -414,9 +447,6 @@ folder src {
       }
       file organizer.routes.ts
     }
-    folder payments {
-      file payments.routes.ts
-    }
     folder registrations {
       file registrations.controller.ts
       file registrations.routes.ts
@@ -461,24 +491,11 @@ folder src {
       folder data {
         file db.ts
       }
-      folder db {
-        file client.ts
-        file redis.ts
-        file seed.ts
-      }
       folder emails {
         file supportRequestEmail.tsx
+        file TicketOrderEmail.tsx
       }
       folder lib {
-        folder qr {
-          file create-ticket-card.ts
-          file create-ticket-qr.ts
-          file generate-qr.ts
-          file sign-qr-payload.ts
-          file upload-qr.ts
-          file validate-ticket-qr.ts
-          file verify-qr.ts
-        }
         file datetime.ts
         file geocode.ts
         file ids.ts
@@ -506,6 +523,8 @@ folder src {
         file webhook.routes.ts
       }
       folder services {
+        file sendEmail.ts
+        file sendTicketOrderEmail.tsx
         file supportEmail.ts
       }
       folder test {
@@ -541,6 +560,7 @@ file CHANGES.md
 file drizzle.config.ts
 file dump.rdb
 file fonts.conf
+file package-lock.json
 file package.json
 file README.md
 file tsconfig.json

@@ -1,5 +1,5 @@
 import sharp, { OverlayOptions } from "sharp";
-import { formatEventDate, formatEventTimeRange } from "../../modules/whatsapp/lib/datetime";
+import { formatEventDate, formatEventTimeRangeCard } from "@/modules/whatsapp/lib/datetime";
 import path from "path";
 
 interface TicketCardOptions {
@@ -11,7 +11,7 @@ interface TicketCardOptions {
   tier: string;
   qrBuffer: Buffer;
   brand?: string;
-  banner?: string; 
+  banner?: string;
 }
 
 const CARD_WIDTH = 800;
@@ -41,7 +41,7 @@ export async function createTicketCard({
   // -----------------------------
   // Load Logo
   // -----------------------------
-  const logoPath = path.join(process.cwd(), "src", "assets", "ox-logo.png");
+  const logoPath = path.join(process.cwd(), "client", "public", "ox-logo.jpg");
   let logoBuffer: Buffer | null = null;
 
   try {
@@ -67,9 +67,12 @@ export async function createTicketCard({
   }
 
   const dateLine = formatEventDate(eventStartsAt);
-  const timeLine = formatEventTimeRange(eventStartsAt, eventEndsAt);
-  const safeAddress = truncateText(address, 42); // Prevents text overflow off the card
+  const timeLine = formatEventTimeRangeCard(eventStartsAt, eventEndsAt);
+  const safeAddress = truncateText(address, 42);
   const safeEventName = truncateText(eventName, 28);
+
+  // Combine date and AM/PM time on one clean line
+  const fullDateTime = timeLine ? `${dateLine} • ${timeLine}` : dateLine;
 
   // -----------------------------
   // SVG Layout
@@ -92,8 +95,8 @@ export async function createTicketCard({
       <text x="48" y="260" class="label">TICKET</text>
       <text x="48" y="310" class="title">${escapeXml(safeEventName)}</text>
       
-      <!-- Date & Time Line -->
-      <text x="48" y="355" class="subtitle">${escapeXml(dateLine)}${timeLine ? ` • ${escapeXml(timeLine)}` : ""}</text>
+      <!-- Date & AM/PM Time Line -->
+      <text x="48" y="355" class="subtitle">${escapeXml(fullDateTime)}</text>
       
       <!-- Address on its own line -->
       <text x="48" y="392" class="subtitle">${escapeXml(safeAddress)}</text>
@@ -159,7 +162,6 @@ export async function createTicketCard({
     .toBuffer();
 }
 
-/** Prevents text from extending beyond the edge of the 800px card */
 function truncateText(str: string, maxLength: number): string {
   if (!str) return "";
   if (str.length <= maxLength) return str;

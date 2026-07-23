@@ -137,3 +137,22 @@ export function parseFriendlyDate(text: string): ParsedFriendlyDate {
 export function friendlyDateFormatHint(): string {
   return DATE_FORMAT_HINT;
 }
+
+
+
+/** 12hr clock time with AM/PM, e.g. "8:00 PM" */
+export function formatClockTimeCard(d: Date | string): string {
+  return new Date(d).toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: "UTC",
+  });
+}
+
+/** "12:00 PM" or "12:00 PM to 8:00 PM" if an end time/date is provided */
+export function formatEventTimeRangeCard(startsAt: Date | string, endsAt?: Date | string | null): string {
+  const start = formatClockTimeCard(startsAt);
+  if (!endsAt) return start;
+  return `${start} to ${formatClockTime(endsAt)}`;
+}
