@@ -170,8 +170,9 @@ async function handleConfirmation(
 
     if (action === "CONFIRM") {
         const updated = await confirmHotelOrder(order.id);
-        // notify guest
-        // deliver booking
+
+        // Notify the guest that the hotel has accepted the booking
+        await hotelFlow.notifyGuestOfHotelConfirmation(updated);
 
         await setState(phone, "HOTEL_HOME", {});
 
@@ -180,13 +181,13 @@ async function handleConfirmation(
         };
     }
 
-    
-      const updated = await db.declineHotelOrderAndQueueRefund(
+
+    const updated = await db.declineHotelOrderAndQueueRefund(
         order.id,
         "Hotel declined booking.",
-      );
-    
-      await hotelFlow.notifyGuestOfDecline(updated);
+    );
+
+    await hotelFlow.notifyGuestOfDecline(updated);
 
     await setState(phone, "HOTEL_HOME", {});
 

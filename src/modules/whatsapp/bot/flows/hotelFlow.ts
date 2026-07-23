@@ -301,6 +301,24 @@ export async function notifyGuestOfDecline(order: db.HotelOrderRow): Promise<voi
   );
 }
 
+export async function notifyGuestOfHotelConfirmation(
+  order: db.HotelOrderRow
+): Promise<void> {
+  const hotel = await db.getHotelById(order.hotelId);
+
+  await sendMessage(
+    order.phone,
+    `Great news! Your booking request has been accepted by ${
+      hotel?.name ?? "the hotel"
+    }.\n\n` +
+      `${order.roomTypeName}\n` +
+      `${formatDate(order.checkIn)} to ${formatDate(order.checkOut)}\n` +
+      `${order.guests} guest${order.guests > 1 ? "s" : ""}\n` +
+      `Ref: ${order.reference}\n\n` +
+      `We look forward to hosting you. Please present this confirmation at check-in.`
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Post-purchase hotel upsell offer (Step 6) — triggered by the delayed
 // queue job, not the buyer's own navigation. Picking a number jumps

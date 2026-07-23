@@ -1,15 +1,11 @@
-// client/src/components/organizer/EventsPanel.tsx
-import React, { useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { useOrganizerEvents, useUpdateEventStatus } from "@/hooks/api/useOrganizer";
 
-interface Props { 
-  onSelectEvent: (id: string | null) => void; 
-  selectedEventId: string | null; 
-}
+
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   active: "default", 
@@ -19,7 +15,7 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "
   closed: "outline",
 };
 
-export const EventsPanel: React.FC<Props> = ({ onSelectEvent, selectedEventId }) => {
+export const EventsPanel = () => {
   const { data: events, isLoading } = useOrganizerEvents();
   const updateStatus = useUpdateEventStatus();
   const navigate = useNavigate();
@@ -91,12 +87,9 @@ export const EventsPanel: React.FC<Props> = ({ onSelectEvent, selectedEventId })
       <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
         {events.map((event) => (
           <Card
-            key={event.id}
-            className={`cursor-pointer transition-colors overflow-hidden ${
-              selectedEventId === event.id ? "ring-2 ring-primary" : ""
-            }`}
-            onClick={() => onSelectEvent(event.id)}
-          >
+  key={event.id}
+  className="overflow-hidden transition-shadow hover:shadow-md"
+>
             <div className="aspect-video bg-muted overflow-hidden">
               <img
                 src={event.backgroundImageUrl}
