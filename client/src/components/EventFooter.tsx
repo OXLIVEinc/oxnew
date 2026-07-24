@@ -34,7 +34,7 @@ export const EventFooter = () => {
   return (
     <footer className="border-t border-gray-200 bg-white">
       <motion.div
-        className="mx-auto max-w-7xl px-6 py-8"
+        className="mx-auto max-w-[1700px] px-6 py-8"
         variants={container}
         initial="hidden"
         whileInView="show"

@@ -19,6 +19,8 @@ import HotelOrderPage from "./pages/review/HotelOrderPage";
 import TransferClaimPage from "./pages/review/TransferClaimPage";
 // import About from "./pages/About";
 import Help from "./pages/Help";
+import ResetPassword from "./pages/ResetPassword";
+
 
 // Define route configuration
 interface RouteConfig {
@@ -45,6 +47,7 @@ const routes: RouteConfig[] = [
   { path: "/checkout/:orderId", element: <CheckoutPage /> },
   { path: "/hotel-order/:orderId", element: <HotelOrderPage /> },
   { path: "/transfer/claim/:code", element: <TransferClaimPage /> },
+  { path: "/reset-password", element: <ResetPassword/> },
   { path: "*", element: <NotFound /> },
 ];
 

@@ -114,7 +114,7 @@ function matchesDate(eventDate: Date, filters: DiscoverFilters): boolean {
   }
 }
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 16;
 
 const Discover = () => {
   const [filters, setFilters] = useState<DiscoverFilters>(DEFAULT_FILTERS);
@@ -123,7 +123,7 @@ const Discover = () => {
 
   const geo = useGeoLocation();
 
-  const { data, isLoading: loading, isFetching } = useEvents({
+  const { data, isLoading: loading,isFetching } = useEvents({
     q: filters.search?.trim() || undefined,
     page: currentPage,
     limit: PAGE_SIZE,
@@ -143,7 +143,9 @@ const Discover = () => {
     const oneHour = 1000 * 60 * 60;
 
     return events.filter((event) => {
-      const eventDateTime = new Date(`${event.schedule.date}T${event.schedule.time}`);
+      const eventDateTime = new Date(
+        `${event.schedule.date}T${event.schedule.time}`,
+      );
       if (eventDateTime.getTime() < now - oneHour) return false;
 
       if (!matchesDate(eventDateTime, filters)) return false;
@@ -152,7 +154,8 @@ const Discover = () => {
     });
   }, [events, filters]);
 
-  const isFiltered = filters.search.trim() !== "" || filters.datePreset !== "any";
+  const isFiltered =
+    filters.search.trim() !== "" || filters.datePreset !== "any";
 
   // Scroll handler for hero parallax
   useEffect(() => {
@@ -162,19 +165,23 @@ const Discover = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background overflow-x-hidden">
+    <div className="min-h-screen  bg-background overflow-x-hidden">
       <SEOHead
         title="Discover Events | OX Entertainment"
         description="Explore popular events near you"
         keywords="events, discover events, community events, OX Entertainment"
       />
 
-      <div className="animate-fade-in" style={{ animationDelay: "0.1s", animationFillMode: "both" }}>
+      <div
+        className="animate-fade-in"
+        style={{ animationDelay: "0.1s", animationFillMode: "both" }}
+      >
         <Navbar />
       </div>
 
       {/* Hero Section */}
-      <section className="pt-32 md:pt-40 lg:pt-48 pb-6 md:pb-16 lg:pb-24 px-4 md:px-8 relative overflow-hidden">
+     <div className="max-w-[1700px] mx-auto">
+       <section className=" pt-32 md:pt-40 lg:pt-48 pb-6 md:pb-16 lg:pb-24 px-4 md:px-8 relative overflow-hidden">
         <div
           className="absolute inset-0 pointer-events-none"
           style={{ transform: `translate3d(0, ${scrollY * 0.5}px, 0)` }}
@@ -193,28 +200,38 @@ const Discover = () => {
         >
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-medium mb-6 md:mb-10 inline-flex flex-col items-center">
             <div className="flex gap-2 items-center">
-              <span className="border border-foreground px-3 md:px-6 py-2 md:py-4 animate-fade-in"
-                style={{ animationDelay: "0.3s", animationFillMode: "both" }}>
+              <span
+                className="border border-foreground px-3 md:px-6 py-2 md:py-4 animate-fade-in"
+                style={{ animationDelay: "0.3s", animationFillMode: "both" }}
+              >
                 Discover
               </span>
-              <span className="bg-[hsl(300,100%,73%)] text-foreground border border-foreground px-3 md:px-6 py-2 md:py-4 rounded-[20px] md:rounded-[40px] -ml-px animate-fade-in"
-                style={{ animationDelay: "0.4s", animationFillMode: "both" }}>
+              <span
+                className="bg-[hsl(300,100%,73%)] text-foreground border border-foreground px-3 md:px-6 py-2 md:py-4 rounded-[20px] md:rounded-[40px] -ml-px animate-fade-in"
+                style={{ animationDelay: "0.4s", animationFillMode: "both" }}
+              >
                 events
               </span>
             </div>
             <div className="flex items-center -mt-px">
-              <span className="border border-foreground px-3 md:px-6 py-2 md:py-4 animate-fade-in"
-                style={{ animationDelay: "0.5s", animationFillMode: "both" }}>
+              <span
+                className="border border-foreground px-3 md:px-6 py-2 md:py-4 animate-fade-in"
+                style={{ animationDelay: "0.5s", animationFillMode: "both" }}
+              >
                 near
               </span>
-              <span className="border border-l-0 border-foreground px-3 md:px-6 py-2 md:py-4 animate-fade-in"
-                style={{ animationDelay: "0.6s", animationFillMode: "both" }}>
+              <span
+                className="border border-l-0 border-foreground px-3 md:px-6 py-2 md:py-4 animate-fade-in"
+                style={{ animationDelay: "0.6s", animationFillMode: "both" }}
+              >
                 you
               </span>
             </div>
           </h1>
-          <p className="text-sm md:text-base lg:text-[18px] text-foreground/80 max-w-2xl mx-auto h-7 animate-fade-in"
-            style={{ animationDelay: "0.7s", animationFillMode: "both" }}>
+          <p
+            className="text-sm md:text-base lg:text-[18px] text-foreground/80 max-w-2xl mx-auto h-7 animate-fade-in"
+            style={{ animationDelay: "0.7s", animationFillMode: "both" }}
+          >
             <TypewriterText />
           </p>
         </div>
@@ -226,8 +243,10 @@ const Discover = () => {
 
       {/* Browse / Filter Section */}
       <section id="events-section" className="px-4 md:px-8 pb-16 pt-6 md:pt-16">
-        <div className="flex flex-wrap items-center gap-2 mb-6 md:mb-8 animate-fade-in"
-          style={{ animationDelay: "0.8s", animationFillMode: "both" }}>
+        <div
+          className="flex flex-wrap items-center gap-2 mb-6 md:mb-8 animate-fade-in"
+          style={{ animationDelay: "0.8s", animationFillMode: "both" }}
+        >
           <h2 className="text-base md:text-lg lg:text-xl font-normal">
             Browsing events in
           </h2>
@@ -243,165 +262,177 @@ const Discover = () => {
           isFiltered={isFiltered}
           onReset={() => setFilters(DEFAULT_FILTERS)}
         />
+<div className="relative mt-6 md:mt-8">
+  {isFetching && !loading && (
+    <div className="absolute inset-0 z-20 flex items-center justify-center rounded-xl bg-background/50 backdrop-blur-[2px]">
+      <div className="flex items-center gap-3 rounded-full border bg-background px-4 py-2 shadow-lg">
+        <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <span className="text-sm font-medium">Loading events...</span>
+      </div>
+    </div>
+  )}
 
-        <div className="mt-6 md:mt-8 grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-8 md:gap-x-6 md:gap-y-10">
-          {loading ? (
-            Array.from({ length: PAGE_SIZE }).map((_, i) => (
-              <div key={i} className="flex h-full flex-col overflow-hidden rounded-xl border border-border animate-pulse">
-                <div className="aspect-video bg-muted flex-shrink-0" />
-                <div className="flex-1 flex flex-col p-4">
-                  <div className="flex justify-between mb-2">
-                    <div className="h-4 bg-muted rounded w-4/5" />
-                    <div className="h-5 w-12 bg-muted rounded" />
-                  </div>
-                  <div className="h-3 bg-muted rounded w-3/4 mb-2" />
-                  <div className="h-3 bg-muted rounded w-11/12 mb-auto" />
-                  <div className="flex justify-between pt-3 border-t border-border mt-auto">
-                    <div className="h-3 bg-muted rounded w-32" />
-                    <div className="h-7 w-7 bg-muted rounded-full" />
-                  </div>
-                </div>
-              </div>
-            ))
-          ) : filteredEvents.length === 0 ? (
-            <div className="col-span-full flex flex-col items-center justify-center gap-3 py-20 text-center">
-              <div className="h-14 w-14 rounded-full bg-muted flex items-center justify-center">
-                <SearchX size={22} className="text-muted-foreground" />
-              </div>
-              <div>
-                <p className="font-medium">No events match your filters</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Try adjusting your search or date range
-                </p>
-              </div>
-              {isFiltered && (
-                <button
-                  onClick={() => setFilters(DEFAULT_FILTERS)}
-                  className="mt-2 text-sm font-medium border border-foreground px-4 py-2 rounded-full hover:bg-foreground hover:text-background transition-colors"
-                >
-                  Reset filters
-                </button>
-              )}
+  <div
+    className={`grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-8 md:gap-x-6 md:gap-y-10 transition-opacity duration-200 ${
+      isFetching && !loading ? "opacity-50" : "opacity-100"
+    }`}
+  >
+    {loading ? (
+      Array.from({ length: PAGE_SIZE }).map((_, i) => (
+        <div
+          key={i}
+          className="flex h-full flex-col overflow-hidden rounded-xl border border-border animate-pulse"
+        >
+          <div className="aspect-video bg-muted flex-shrink-0" />
+          <div className="flex-1 flex flex-col p-4">
+            <div className="flex justify-between mb-2">
+              <div className="h-4 bg-muted rounded w-4/5" />
+              <div className="h-5 w-12 bg-muted rounded" />
             </div>
-          ) : (
-            filteredEvents.map((event, index) => (
-              <div
-                key={event.id}
-                className="animate-fade-in"
-                style={{
-                  animationDelay: `${Math.min(index * 0.04, 0.6)}s`,
-                  animationFillMode: "both",
-                }}
-              >
-                <DiscoverEventCard event={event} />
-              </div>
-            ))
-          )}
+            <div className="h-3 bg-muted rounded w-3/4 mb-2" />
+            <div className="h-3 bg-muted rounded w-11/12 mb-auto" />
+            <div className="flex justify-between pt-3 border-t border-border mt-auto">
+              <div className="h-3 bg-muted rounded w-32" />
+              <div className="h-7 w-7 bg-muted rounded-full" />
+            </div>
+          </div>
+        </div>
+      ))
+    ) : filteredEvents.length === 0 ? (
+      <div className="col-span-full flex flex-col items-center justify-center gap-3 py-20 text-center">
+        <div className="h-14 w-14 rounded-full bg-muted flex items-center justify-center">
+          <SearchX size={22} className="text-muted-foreground" />
         </div>
 
-        {/* Pagination */}
-{/* Pagination */}
-{pagination && pagination.totalPages > 1 && (
-  <div className="mt-12">
-    <Pagination>
-      <PaginationContent>
-        <PaginationItem>
-          <PaginationPrevious
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              if (currentPage > 1 && !isFetching) {
-                setCurrentPage((p) => p - 1);
-              }
-            }}
-            className={
-              currentPage === 1 || isFetching
-                ? "pointer-events-none opacity-50"
-                : ""
-            }
-          />
-        </PaginationItem>
+        <div>
+          <p className="font-medium">No events match your filters</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Try adjusting your search or date range
+          </p>
+        </div>
 
-        {(() => {
-          const total = pagination.totalPages;
-          const pages: (number | "ellipsis")[] = [];
-
-          if (total <= 7) {
-            // Show everything when there aren't many pages
-            for (let i = 1; i <= total; i++) pages.push(i);
-          } else {
-            pages.push(1);
-
-            if (currentPage > 3) {
-              pages.push("ellipsis");
-            }
-
-            const start = Math.max(2, currentPage - 1);
-            const end = Math.min(total - 1, currentPage + 1);
-
-            for (let i = start; i <= end; i++) {
-              pages.push(i);
-            }
-
-            if (currentPage < total - 2) {
-              pages.push("ellipsis");
-            }
-
-            pages.push(total);
-          }
-
-          return pages.map((item, index) =>
-            item === "ellipsis" ? (
-              <PaginationItem key={`ellipsis-${index}`}>
-                <PaginationEllipsis />
-              </PaginationItem>
-            ) : (
-              <PaginationItem key={item}>
-                <PaginationLink
-                  href="#"
-                  isActive={item === currentPage}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    if (!isFetching) {
-                      setCurrentPage(item);
-                    }
-                  }}
-                >
-                  {item}
-                </PaginationLink>
-              </PaginationItem>
-            )
-          );
-        })()}
-
-        <PaginationItem>
-          <PaginationNext
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              if (
-                currentPage < pagination.totalPages &&
-                !isFetching
-              ) {
-                setCurrentPage((p) => p + 1);
-              }
-            }}
-            className={
-              currentPage === pagination.totalPages || isFetching
-                ? "pointer-events-none opacity-50"
-                : ""
-            }
-          />
-        </PaginationItem>
-      </PaginationContent>
-    </Pagination>
+        {isFiltered && (
+          <button
+            onClick={() => setFilters(DEFAULT_FILTERS)}
+            className="mt-2 text-sm font-medium border border-foreground px-4 py-2 rounded-full hover:bg-foreground hover:text-background transition-colors"
+          >
+            Reset filters
+          </button>
+        )}
+      </div>
+    ) : (
+      filteredEvents.map((event, index) => (
+        <div
+          key={event.id}
+          className="animate-fade-in"
+          style={{
+            animationDelay: `${Math.min(index * 0.04, 0.6)}s`,
+            animationFillMode: "both",
+          }}
+        >
+          <DiscoverEventCard event={event} />
+        </div>
+      ))
+    )}
   </div>
-)}
+</div>
+
+        {/* Pagination */}
+        {/* Pagination */}
+        {pagination && pagination.totalPages > 1 && (
+          <div className="mt-12">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (currentPage > 1) {
+                        setCurrentPage((p) => p - 1);
+                      }
+                    }}
+                    className={
+                      currentPage === 1 ? "pointer-events-none opacity-50" : ""
+                    }
+                  />
+                </PaginationItem>
+
+                {(() => {
+                  const total = pagination.totalPages;
+                  const pages: (number | "ellipsis")[] = [];
+
+                  if (total <= 7) {
+                    // Show everything when there aren't many pages
+                    for (let i = 1; i <= total; i++) pages.push(i);
+                  } else {
+                    pages.push(1);
+
+                    if (currentPage > 3) {
+                      pages.push("ellipsis");
+                    }
+
+                    const start = Math.max(2, currentPage - 1);
+                    const end = Math.min(total - 1, currentPage + 1);
+
+                    for (let i = start; i <= end; i++) {
+                      pages.push(i);
+                    }
+
+                    if (currentPage < total - 2) {
+                      pages.push("ellipsis");
+                    }
+
+                    pages.push(total);
+                  }
+
+                  return pages.map((item, index) =>
+                    item === "ellipsis" ? (
+                      <PaginationItem key={`ellipsis-${index}`}>
+                        <PaginationEllipsis />
+                      </PaginationItem>
+                    ) : (
+                      <PaginationItem key={item}>
+                        <PaginationLink
+                          href="#"
+                          isActive={item === currentPage}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setCurrentPage(item);
+                          }}
+                        >
+                          {item}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ),
+                  );
+                })()}
+
+                <PaginationItem>
+                  <PaginationNext
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (currentPage < pagination.totalPages) {
+                        setCurrentPage((p) => p + 1);
+                      }
+                    }}
+                    className={
+                      currentPage === pagination.totalPages
+                        ? "pointer-events-none opacity-50"
+                        : ""
+                    }
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        )}
       </section>
+     </div>
 
       <EventFooter />
     </div>
-
   );
 };
 

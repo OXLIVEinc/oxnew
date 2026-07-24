@@ -1,6 +1,6 @@
 import React, { useRef } from "react";
 import { toast } from "sonner";
-import { Plus, X, Image, Video } from "lucide-react";
+import { Plus, X, Video } from "lucide-react";
 
 export interface GalleryItem {
   file?: File;

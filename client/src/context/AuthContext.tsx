@@ -41,6 +41,7 @@ interface AuthContextValue {
     whatsapp?: string;
   }) => Promise<void>;
    resetPassword: (email: string) => Promise<void>;
+   updatePassword: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -293,24 +294,58 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [toast, logError]);
 
 
-    const resetPassword = async (email: string) => {
-  setLoading(true);
+ 
+ const resetPassword = async (email: string): Promise<void> => {
+  const redirectTo = `${window.location.origin}/reset-password`
+  console.log(redirectTo)
+
   try {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
+    const { error } = await supabase.auth.resetPasswordForEmail(email);
+
     if (error) throw error;
 
     toast({
-      title: 'Password reset email sent!',
-      description: 'Check your email for instructions.',
+      title: "Password reset email sent!",
+      description: "Check your email for instructions.",
     });
   } catch (err: any) {
-    toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    console.log(err)
+    toast({
+      title: "Error",
+      description: err.message,
+      variant: "destructive",
+    });
+
+    throw err;
   } finally {
-    setLoading(false);
   }
 };
+
+const updatePassword = async (newPassword: string): Promise<void> => {
+
+  try {
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+
+    if (error) throw error;
+
+    toast({
+      title: "Password updated!",
+      description: "Your password has been successfully updated.",
+    });
+  } catch (err: any) {
+    toast({
+      title: "Error",
+      description: err.message,
+      variant: "destructive",
+    });
+
+    throw err;
+  } finally {
+  }
+};
+
 
   const refresh = useCallback(async () => {
     if (!authUser) return;
@@ -339,7 +374,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     refresh,
     signIn,
     signUp,
-    resetPassword 
+    resetPassword,
+    updatePassword
   };
 
   return (
